@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🌲 تل السنديان | قائمة الطعام الأصيلة</title>
-    <link rel="apple-touch-icon" href="https://archive.org/download/mismar/mismar.png">
-    <link rel="icon" href="https://archive.org/download/mismar/mismar.png">
+    <link rel="apple-touch-icon" href="https://archive.org/download/untitled-design-36_202602/Untitled%20design%20%2836%29.png">
+    <link rel="icon" href="https://archive.org/download/untitled-design-36_202602/Untitled%20design%20%2836%29.png">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -860,10 +860,11 @@
             box-shadow: 0 0 20px #ffffff;
         }
 
+        /* ===== تحسين البطاقات للعرض الأفقي على الموبايل ===== */
         .products-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 30px;
+            grid-template-columns: 1fr;  /* بطاقة واحدة في كل صف */
+            gap: 20px;
         }
 
         .product-card {
@@ -874,66 +875,82 @@
             border: 3px solid #ffffff;
             transition: var(--transition-smooth);
             display: flex;
-            flex-direction: column;
+            flex-direction: row;  /* عرضي أفقي */
+            align-items: center;
+            padding: 12px;
         }
         .product-card:hover {
-            transform: translateY(-12px) scale(1.02);
-            box-shadow: 0 35px 70px -10px #3f6b35, 0 0 0 5px #ffffff;
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 25px 50px -8px #3f6b35, 0 0 0 5px #ffffff;
         }
 
         .product-image {
-            width: 100%;
-            height: 230px;
+            width: 120px;          /* مناسب للموبايل */
+            height: 120px;
             object-fit: cover;
-            border-bottom: 3px solid #3f8b3a;
-            transition: transform 0.6s ease;
+            border-radius: 25px;    /* زوايا ناعمة */
+            border: 4px solid #3f8b3a;  /* إطار أخضر */
+            box-shadow: 0 0 20px rgba(255,255,255,0.8); /* توهج أبيض */
+            transition: transform 0.4s ease;
+            flex-shrink: 0;         /* منع التقلص */
         }
         .product-card:hover .product-image {
-            transform: scale(1.05);
+            transform: scale(1.03);
         }
 
         .card-content { 
-            padding: 22px;
+            padding: 8px 15px 8px 8px;  /* مسافات مناسبة */
             flex-grow: 1;
             display: flex;
             flex-direction: column;
+            min-width: 0;           /* لضمان التفاف النص */
         }
 
         .product-title {
-            font-size: 1.7em;
+            font-size: 1.3em;
             color: #1f4a1a;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
             font-weight: 900;
             display: flex;
             align-items: center;
             gap: 8px;
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .product-description {
             color: var(--text-dark);
-            margin-bottom: 18px;
-            font-size: 0.98em;
-            line-height: 1.5;
+            margin-bottom: 10px;
+            font-size: 0.85em;
+            line-height: 1.4;
             flex-grow: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;   /* حد أقصى سطرين */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .product-price {
-            font-size: 2em;
+            font-size: 1.4em;
             font-weight: 900;
             color: #1f4a1a;
-            margin-bottom: 18px;
-            text-shadow: 0 2px 8px rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+            text-shadow: 0 2px 5px rgba(255, 255, 255, 0.5);
         }
 
         .new-tag {
             background: linear-gradient(145deg, #3f8b3a, #7cb86b);
             color: var(--pure-white);
-            padding: 6px 16px;
+            padding: 4px 12px;
             border-radius: 40px;
-            font-size: 0.65em;
-            margin-right: 10px;
+            font-size: 0.6em;
+            margin-right: 8px;
             animation: newTagPulse 1.8s infinite;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            white-space: nowrap;
         }
         @keyframes newTagPulse {
             0%,100% { opacity: 1; transform: scale(1); }
@@ -943,23 +960,23 @@
         .quantity-controls {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 20px;
-            margin-bottom: 18px;
+            justify-content: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
         }
 
         .quantity-btn {
-            width: 48px;
-            height: 48px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: linear-gradient(145deg, #2b5e25, #5cb85c);
             color: var(--pure-white);
             border: none;
-            font-size: 1.8em;
+            font-size: 1.5em;
             font-weight: bold;
             cursor: pointer;
             transition: var(--transition-smooth);
-            box-shadow: 0 8px 20px rgba(60, 120, 50, 0.5);
+            box-shadow: 0 6px 15px rgba(60, 120, 50, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -967,30 +984,30 @@
         .quantity-btn:active { transform: scale(0.85); background: #ffffff; color: #1f4a1a; }
 
         .quantity-display {
-            font-size: 1.5em;
+            font-size: 1.2em;
             font-weight: bold;
             color: #1f4a1a;
-            min-width: 45px;
+            min-width: 35px;
             text-align: center;
         }
 
         .add-to-cart-btn {
             width: 100%;
-            padding: 16px;
+            padding: 12px;
             background: linear-gradient(145deg, #2b5e25, #5cb85c, #8bc34a);
             color: var(--pure-white);
             border: none;
-            border-radius: 60px;
-            font-size: 1.2em;
+            border-radius: 50px;
+            font-size: 0.95em;
             font-weight: 900;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 8px;
             transition: var(--transition-smooth);
             border: 2px solid var(--pure-white);
-            margin-top: auto;
+            margin-top: 4px;
             position: relative;
             overflow: hidden;
         }
@@ -1008,8 +1025,8 @@
             left: 100%;
         }
         .add-to-cart-btn:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(45, 90, 39, 0.8);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(45, 90, 39, 0.7);
         }
 
         .cart-fab {
@@ -1231,69 +1248,65 @@
         }
         .submit-order:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* ===== الفوتر المصغر ===== */
+        /* ===== الفوتر المصغر والمتناسق مع الموبايل ===== */
         .footer {
             background: linear-gradient(145deg, #1f4a1a, #3f8b3a, #7cb86b);
             color: var(--pure-white);
-            padding: 15px;  /* تقليل padding */
+            padding: 10px 15px;  /* تقليل padding */
             text-align: center;
-            margin-top: 30px;  /* تقليل المسافة العلوية */
-            border-top: 3px solid #ffffff;  /* حدود أقل سمكاً */
-            border-radius: 30px 30px 0 0;  /* انحناء أقل */
+            margin-top: 20px;  /* مسافة علوية أقل */
+            border-top: 2px solid #ffffff;  /* حدود أقل سمكاً */
+            border-radius: 20px 20px 0 0;  /* انحناء أقل */
+            font-size: 0.9rem;  /* حجم خط أساسي أصغر */
         }
 
         .instagram-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 40px;  /* تصغير الأيقونة */
-            height: 40px;
+            width: 36px;  /* تصغير الأيقونة */
+            height: 36px;
             border-radius: 50%;
             background: linear-gradient(145deg, #ffffff, #f0f2f5);
             color: #1f4a1a;
-            font-size: 1.5em;  /* تصغير الخط */
-            margin-bottom: 10px;  /* تقليل المسافة السفلية */
-            border: 3px solid var(--sandy-beige);  /* حدود أقل سمكاً */
+            font-size: 1.3em;  /* تصغير الخط */
+            margin-bottom: 6px;  /* تقليل المسافة السفلية */
+            border: 2px solid var(--sandy-beige);  /* حدود أقل سمكاً */
             transition: var(--transition-smooth);
         }
         .instagram-btn:hover { 
-            transform: scale(1.15) rotate(15deg);
+            transform: scale(1.1) rotate(10deg);
             background: #ffffff;
         }
 
         .footer p {
-            font-size: 0.8em;  /* تصغير النص */
-            margin: 5px 0;  /* مسافات بسيطة */
-        }
-
-        @media (max-width: 768px) {
-            .products-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 18px;
-            }
-            .product-image { height: 150px; }
-            .card-content { padding: 15px; }
-            .product-title { font-size: 1.3em; margin-bottom: 8px; }
-            .product-description { font-size: 0.85em; margin-bottom: 12px; }
-            .product-price { font-size: 1.6em; margin-bottom: 12px; }
-            .quantity-controls { gap: 12px; margin-bottom: 12px; }
-            .quantity-btn { width: 40px; height: 40px; font-size: 1.4em; }
-            .quantity-display { font-size: 1.2em; min-width: 35px; }
-            .add-to-cart-btn { padding: 12px; font-size: 1em; }
-            .nav-tabs { padding: 8px; gap: 8px; margin: 0 10px 5px; width: calc(100% - 20px); }
-            .nav-tab { padding: 8px 16px; font-size: 0.85em; }
-            .restaurant-name { font-size: 1.7em; }
-            .logo-circle { width: 75px; height: 75px; }
-            .running-squirrel { width: 50px; height: 42px; }
-            .squirrel-home { width: 50px; height: 55px; }
+            font-size: 1.00 em;  /* تصغير النص */
+            margin: 4px 0;  /* مسافات بسيطة */
+            line-height: 1.3;
         }
 
         @media (max-width: 480px) {
-            .restaurant-name { font-size: 1.5em; }
+            .product-image {
+                width: 100px;
+                height: 100px;
+            }
             .product-title { font-size: 1.2em; }
-            .product-price { font-size: 1.4em; }
-            .add-to-cart-btn { font-size: 0.95em; padding: 10px; }
-            .section-title { font-size: 2em; }
+            .product-price { font-size: 1.3em; }
+            .quantity-btn { width: 35px; height: 35px; font-size: 1.3em; }
+            .add-to-cart-btn { font-size: 0.9em; padding: 10px; }
+            
+            /* تحسين إضافي للفوتر على الشاشات الصغيرة جداً */
+            .footer {
+                padding: 8px 10px;
+                margin-top: 138px;
+                font-size: 0.8rem;
+            }
+            .instagram-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 1.2em;
+                margin-bottom: 4px;
+            }
         }
     </style>
 </head>
@@ -1319,7 +1332,7 @@
         </div>
         
         <div class="intro-logo">
-            <img src="https://archive.org/download/mismar/mismar.png" alt="تل السنديان">
+            <img src="https://archive.org/download/untitled-design-36_202602/Untitled%20design%20%2836%29.png" alt="تل السنديان">
         </div>
         
         <div class="intro-text">🌲 تل السنديان</div>
@@ -1373,7 +1386,7 @@
         
         <div class="header-content">
             <div class="logo-circle">
-                <img src="https://archive.org/download/mismar/mismar.png" alt="تل السنديان">
+                <img src="https://archive.org/download/untitled-design-36_202602/Untitled%20design%20%2836%29.png" alt="تل السنديان">
             </div>
             <h1 class="restaurant-name">
                 تل السنديان
@@ -1431,7 +1444,7 @@
             <i class="fab fa-instagram"></i>
         </a>
         <p>© 2026 تل السنديان - جميع الحقوق محفوظة</p>
-        <p style="margin-top: 5px; font-size: 0.75em;">نظام الطلبات الذكي v3.0</p>
+        <p style="margin-top: 3px; font-size: 0.7em;">نظام الطلبات الذكي v3.0</p>
     </footer>
 
     <script>
@@ -1560,7 +1573,7 @@
                     <div class="products-grid">
                         ${filteredProducts.map(product => `
                             <div class="product-card">
-                                <img src="${product.image}" class="product-image" onerror="this.src='https://via.placeholder.com/300x200/2D5A27/FFFFFF?text=تل+السنديان'">
+                                <img src="${product.image}" class="product-image" onerror="this.src='https://via.placeholder.com/512x512/2D5A27/FFFFFF?text=تل+السنديان'">
                                 <div class="card-content">
                                     <h3 class="product-title">${product.name} ${product.isNew ? '<span class="new-tag">جديد</span>' : ''}</h3>
                                     <p class="product-description">${product.description}</p>
