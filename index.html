@@ -1050,6 +1050,153 @@
             box-shadow: 0 10px 20px rgba(45, 90, 39, 0.7);
         }
 
+        /* ==== أزرار النكهة (مضافة من الكود رقم 1) ==== */
+        /* الزر البسيط (للمشروبات الساخنة والباردة) */
+        .flavor-simple-btn {
+            width: 100%;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid #ffffff;
+            border-radius: 40px;
+            font-size: 0.8em;
+            font-weight: 900;
+            cursor: not-allowed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: var(--transition-smooth);
+            margin-top: 5px;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .flavor-simple-btn.enabled {
+            background: linear-gradient(145deg, #2e7d32, #4caf50);
+            color: white;
+            border-color: #ffffff;
+            opacity: 1;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 5px 15px #4caf50;
+        }
+        .flavor-simple-btn.enabled:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px #4caf50;
+        }
+        .flavor-simple-btn i {
+            font-size: 1em;
+        }
+
+        /* الزر الخاص بالموهيتو (الذي يفتح مودال) */
+        .flavor-mojito-btn {
+            width: 100%;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid #ffffff;
+            border-radius: 40px;
+            font-size: 0.8em;
+            font-weight: 900;
+            cursor: not-allowed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: var(--transition-smooth);
+            margin-top: 5px;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .flavor-mojito-btn.enabled {
+            background: linear-gradient(145deg, #2e7d32, #4caf50);
+            color: white;
+            border-color: #ffffff;
+            opacity: 1;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 5px 15px #4caf50;
+        }
+        .flavor-mojito-btn.enabled:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px #4caf50;
+        }
+        .flavor-mojito-btn i {
+            font-size: 1em;
+        }
+
+        /* مودال اختيار النكهات للموهيتو */
+        .flavor-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 4000;
+            justify-content: center;
+            align-items: center;
+        }
+        .flavor-modal.active {
+            display: flex;
+        }
+        .flavor-modal-content {
+            background: linear-gradient(145deg, #ffffff, #f0f2f5);
+            border-radius: var(--modal-radius);
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            border: 5px solid #2b5e25;
+            box-shadow: 0 30px 70px #1f4a1a;
+            text-align: center;
+        }
+        .flavor-modal-content h3 {
+            color: #1f4a1a;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+        .flavor-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(60, 120, 50, 0.1);
+            border: 2px solid #1f4a1a;
+            border-radius: 50px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+        .flavor-option:hover {
+            background: rgba(60, 120, 50, 0.3);
+            transform: scale(1.02);
+        }
+        .flavor-option span {
+            color: #1f4a1a;
+            font-size: 1.2em;
+        }
+        .flavor-option .price {
+            color: #1f4a1a;
+            font-weight: bold;
+        }
+        .close-flavor-modal {
+            margin-top: 20px;
+            background: #2b5e25;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+        .close-flavor-modal:hover {
+            background: #3f8b3a;
+        }
+
         .cart-fab {
             position: fixed;
             bottom: 35px;
@@ -1389,7 +1536,6 @@
     <div class="falling-leaves" id="fallingLeaves"></div>
 
     <div id="intro-screen">
-        <!-- (كما هو) -->
         <div class="intro-burst-container">
             <span class="intro-burst-particle" style="font-size: 45px; --x-offset: -120px; --y-offset: -180px; animation-delay: 0.1s;">🌿</span>
             <span class="intro-burst-particle" style="font-size: 38px; --x-offset: 150px; --y-offset: -150px; animation-delay: 0.15s;">🍂</span>
@@ -1481,6 +1627,26 @@
         </div>
     </div>
 
+    <!-- مودال اختيار النكهات (للموهيتو) - مضافة من الكود رقم 1 -->
+    <div class="flavor-modal" id="flavorModal">
+        <div class="flavor-modal-content">
+            <h3>اختر النكهة</h3>
+            <div class="flavor-option" data-flavor="ريد بول" data-price="1.50" onclick="selectFlavor('ريد بول', 1.50)">
+                <span>ريد بول</span>
+                <span class="price">1.50 د.أ</span>
+            </div>
+            <div class="flavor-option" data-flavor="بوم بوم" data-price="1.00" onclick="selectFlavor('بوم بوم', 1.00)">
+                <span>بوم بوم</span>
+                <span class="price">1.00 د.أ</span>
+            </div>
+            <div class="flavor-option" data-flavor="مياه غازية" data-price="1.00" onclick="selectFlavor('مياه غازية', 1.00)">
+                <span>مياه غازية</span>
+                <span class="price">1.00 د.أ</span>
+            </div>
+            <button class="close-flavor-modal" onclick="closeFlavorModal()">إلغاء</button>
+        </div>
+    </div>
+
     <div class="cart-fab" id="cartFab">
         <i class="fas fa-shopping-cart"></i>
         <span class="cart-badge" id="cartBadge">0</span>
@@ -1522,7 +1688,7 @@
     </div>
 
     <footer class="footer">
-        <a href="#" class="instagram-btn">
+        <a href="https://www.instagram.com/tal_sindian_cafe/" target="_blank" rel="noopener" class="instagram-btn">
             <i class="fab fa-instagram"></i>
         </a>
         <p>© 2026 تل السنديان - جميع الحقوق محفوظة</p>
@@ -1594,8 +1760,18 @@
         let products = [];
         const AppState = {
             cart: [],
-            currentSection: null
+            currentSection: null,
+            selectedProductForFlavor: null // للموهيتو (مضافة من الكود رقم 1)
         };
+
+        // قائمة بأسماء المنتجات التي سيظهر لها زر نكهة بسيط (0.5 د.أ) - مطابقة تامة (من الكود رقم 1)
+        const SIMPLE_FLAVOR_PRODUCTS = [
+            'لاتيه',
+            'سبانيش لاتيه',
+            'وايت هوت شوكليت',
+            'ايس لاتيه',
+            'ايس سبانيش لاتيه'
+        ];
 
         document.addEventListener('DOMContentLoaded', function() {
             createLeaves();
@@ -1658,6 +1834,23 @@
             renderProducts(catId);
         }
 
+        // دالة للتحقق مما إذا كان المنتج من الموهيتو (من الكود رقم 1)
+        function isMojitoProduct(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return false;
+            const category = categories.find(c => c.id === product.categoryId);
+            return category?.name?.includes('موهيتو') || false;
+        }
+
+        // دالة للتحقق مما إذا كان المنتج يستحق زر نكهة بسيط (0.5 د.أ) - مطابقة تامة (من الكود رقم 1)
+        function hasSimpleFlavor(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return false;
+            const productName = product.name.trim();
+            // قائمة الأسماء الدقيقة التي يجب أن يظهر لها الزر
+            return SIMPLE_FLAVOR_PRODUCTS.includes(productName);
+        }
+
         function renderProducts(categoryId) {
             const container = document.getElementById('menuContainer');
             const category = categories.find(c => c.id === categoryId);
@@ -1673,11 +1866,20 @@
                 return;
             }
 
+            // تحديد ما إذا كان هذا القسم هو الموهيتو (بناءً على اسم القسم) - (من الكود رقم 1)
+            const isMohetoSection = category?.name?.includes('موهيتو') || false;
+
             container.innerHTML = `
                 <div class="menu-section active">
                     <h2 class="section-title">${category?.name || ''}</h2>
                     <div class="products-grid">
-                        ${filteredProducts.map(product => `
+                        ${filteredProducts.map(product => {
+                            // التحقق مما إذا كان هذا المنتج يجب أن يحصل على زر نكهة بسيط
+                            const showSimpleFlavor = hasSimpleFlavor(product.id);
+                            // التحقق مما إذا كان المنتج من الموهيتو (لإضافة زر الموهيتو الخاص)
+                            const showMojitoFlavor = isMohetoSection; // في قسم الموهيتو، كل المنتجات تحصل على زر الموهيتو
+
+                            return `
                             <div class="product-card">
                                 <img src="${product.image}" class="product-image" onclick="openImageModal('${product.image}')" onerror="this.src='https://via.placeholder.com/512x512/2D5A27/FFFFFF?text=تل+السنديان'">
                                 <div class="card-content">
@@ -1692,12 +1894,24 @@
                                     <button class="add-to-cart-btn" onclick="addToCart('${product.id}')">
                                         <i class="fas fa-cart-plus"></i> أضف إلى السلة
                                     </button>
+                                    ${showSimpleFlavor ? `
+                                    <button class="flavor-simple-btn" id="flavor-simple-${product.id}" data-product-id="${product.id}" onclick="addSimpleFlavor('${product.id}')">
+                                        <i class="fas fa-leaf"></i> نكهة +0.50 د.أ
+                                    </button>
+                                    ` : ''}
+                                    ${showMojitoFlavor ? `
+                                    <button class="flavor-mojito-btn" id="flavor-mojito-${product.id}" data-product-id="${product.id}" onclick="openFlavorModal('${product.id}')">
+                                        <i class="fas fa-leaf"></i> نكهة
+                                    </button>
+                                    ` : ''}
                                 </div>
                             </div>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                 </div>
             `;
+            // بعد رسم العناصر، نقوم بتحديث حالة أزرار النكهات
+            updateFlavorButtons();
         }
 
         function updateQuantity(productId, change) {
@@ -1729,11 +1943,139 @@
             document.getElementById(`qty-${productId}`).textContent = '1';
             updateCartBadge();
             showNotification('تمت الإضافة إلى السلة', 'success');
+
+            // تحديث أزرار النكهات
+            updateFlavorButtons();
+        }
+
+        // ===== دوال النكهة البسيطة (0.5 د.أ) - من الكود رقم 1 =====
+        function addSimpleFlavor(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            // التحقق من أن المنتج موجود في السلة (يجب أن يكون قد أضيف أولاً)
+            const cartItem = AppState.cart.find(item => item.id === productId);
+            if (!cartItem) {
+                showNotification('أضف المنتج إلى السلة أولاً', 'error');
+                return;
+            }
+
+            // إضافة النكهة إلى السلة كعنصر منفصل
+            const flavorId = `simple-flavor-${productId}-${Date.now()}`;
+            AppState.cart.push({
+                id: flavorId,
+                name: `نكهة إضافية - ${product.name}`,
+                price: 0.50,
+                quantity: 1,
+                isFlavor: true,
+                parentProductId: productId // لتتبع المنتج الأصلي (اختياري)
+            });
+
+            updateCartBadge();
+            showNotification('تمت إضافة النكهة (+0.50 د.أ)', 'success');
+        }
+
+        // ===== دوال الموهيتو (مودال النكهات) - من الكود رقم 1 =====
+        function openFlavorModal(productId) {
+            // التحقق من أن هذا المنتج موجود في السلة (حتى نسمح بإضافة نكهة)
+            const cartItem = AppState.cart.find(item => item.id === productId);
+            if (!cartItem) {
+                showNotification('أضف المنتج إلى السلة أولاً', 'error');
+                return;
+            }
+
+            // حساب عدد المشروبات (الموهيتو) في السلة
+            const mojitoCount = AppState.cart.reduce((sum, item) => {
+                if (isMojitoProduct(item.id)) {
+                    return sum + item.quantity;
+                }
+                return sum;
+            }, 0);
+
+            // حساب عدد النكهات المضافة (للموهيتو)
+            const flavorsCount = AppState.cart.filter(item => item.isFlavor && item.parentProductId && isMojitoProduct(item.parentProductId)).length;
+
+            if (flavorsCount >= mojitoCount) {
+                showNotification('لا يمكن إضافة نكهة إضافية، عدد المشروبات لا يسمح', 'error');
+                return;
+            }
+
+            AppState.selectedProductForFlavor = productId;
+            document.getElementById('flavorModal').classList.add('active');
+        }
+
+        function closeFlavorModal() {
+            document.getElementById('flavorModal').classList.remove('active');
+            AppState.selectedProductForFlavor = null;
+        }
+
+        function selectFlavor(flavorName, price) {
+            const productId = AppState.selectedProductForFlavor;
+            if (!productId) return;
+
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            // إضافة النكهة إلى السلة كعنصر منفصل
+            const flavorId = `mojito-flavor-${productId}-${Date.now()}`;
+            AppState.cart.push({
+                id: flavorId,
+                name: `نكهة ${flavorName} - ${product.name}`,
+                price: price,
+                quantity: 1,
+                isFlavor: true,
+                parentProductId: productId
+            });
+
+            updateCartBadge();
+            showNotification(`تمت إضافة نكهة ${flavorName} (+${price.toFixed(2)} د.أ)`, 'success');
+            closeFlavorModal();
+        }
+
+        // دالة تحديث حالة أزرار النكهات (تمكين/تعطيل) - من الكود رقم 1
+        function updateFlavorButtons() {
+            // أزرار النكهة البسيطة
+            document.querySelectorAll('.flavor-simple-btn').forEach(btn => {
+                const productId = btn.dataset.productId;
+                // المنتج في السلة؟
+                const productInCart = AppState.cart.some(item => item.id === productId);
+                if (productInCart) {
+                    btn.classList.add('enabled');
+                    btn.disabled = false;
+                } else {
+                    btn.classList.remove('enabled');
+                    btn.disabled = true;
+                }
+            });
+
+            // أزرار الموهيتو
+            const mojitoCount = AppState.cart.reduce((sum, item) => {
+                if (isMojitoProduct(item.id)) {
+                    return sum + item.quantity;
+                }
+                return sum;
+            }, 0);
+
+            const mojitoFlavorsCount = AppState.cart.filter(item => item.isFlavor && item.parentProductId && isMojitoProduct(item.parentProductId)).length;
+
+            document.querySelectorAll('.flavor-mojito-btn').forEach(btn => {
+                const productId = btn.dataset.productId;
+                const productInCart = AppState.cart.some(item => item.id === productId);
+                if (productInCart && mojitoFlavorsCount < mojitoCount) {
+                    btn.classList.add('enabled');
+                    btn.disabled = false;
+                } else {
+                    btn.classList.remove('enabled');
+                    btn.disabled = true;
+                }
+            });
         }
 
         function updateCartBadge() {
             const totalItems = AppState.cart.reduce((sum, item) => sum + item.quantity, 0);
             document.getElementById('cartBadge').textContent = totalItems;
+            // تحديث أزرار النكهات كلما تغيرت السلة
+            updateFlavorButtons();
         }
 
         function showCart() {
