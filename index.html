@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🌲 تل السنديان | قائمة الطعام الأصيلة</title>
+    <title>🌲تل السنديان </title>
     <link rel="apple-touch-icon" href="https://iili.io/qfhk5Pt.png">
     <link rel="icon" href="https://iili.io/qfhk5Pt.png">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
@@ -51,7 +51,7 @@
             flex-direction: column;
         }
 
-        /* ===== خلفية غابة متحركة بأوراق متساقطة ===== */
+        /* ===== خلفية غابة متحركة بأوراق متساقطة محسنة للأداء ===== */
         #animated-forest-bg {
             position: fixed;
             top: 0;
@@ -85,6 +85,7 @@
             user-select: none;
             opacity: 0.9;
             filter: drop-shadow(0 10px 8px rgba(0,0,0,0.2));
+            will-change: transform, opacity;
         }
 
         @keyframes fall {
@@ -638,7 +639,7 @@
             to { opacity: 1; }
         }
 
-        /* ===== الهيدر الاحترافي ===== */
+        /* ===== الهيدر الأصلي الجميل مع تحسين الأقسام (تصغيرها) ===== */
         .header {
             width: 100%;
             z-index: 1000;
@@ -738,28 +739,30 @@
             letter-spacing: 1.5px;
         }
 
+        /* شريط التبويبات المحسّن (أصغر حجماً وأكثر احترافية) - تم حل مشكلة التمرير */
         .nav-tabs {
             display: flex;
-            justify-content: center;
+            justify-content: flex-start; /* تغيير من center إلى flex-start لبدء التمرير من اليمين */
             flex-wrap: nowrap;
             overflow-x: auto;
-            width: 100%;
-            padding: 12px 12px 10px;
+            -webkit-overflow-scrolling: touch; /* تمرير سلس على iOS */
+            scrollbar-width: thin;
+            scrollbar-color: #ffffff #F5E6D3;
+            width: calc(100% - 32px);
+            padding: 8px 16px 6px; /* زيادة padding قليلاً لإعطاء مساحة للتمرير */
+            margin: 0 16px 8px;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(15px);
             border-top: 1px solid rgba(255, 255, 255, 0.8);
-            box-shadow: inset 0 5px 15px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.2);
-            gap: 12px;
+            box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.03), 0 4px 10px rgba(0, 0, 0, 0.15);
+            gap: 6px;
             position: relative;
             z-index: 2;
-            scrollbar-width: thin;
-            scrollbar-color: #ffffff #F5E6D3;
-            border-radius: 50px 50px 30px 30px;
-            margin: 0 16px 8px;
-            width: calc(100% - 32px);
+            border-radius: 40px 40px 25px 25px;
+            direction: rtl; /* تأكيد الاتجاه */
         }
         .nav-tabs::-webkit-scrollbar {
-            height: 6px;
+            height: 4px;
         }
         .nav-tabs::-webkit-scrollbar-track {
             background: var(--sandy-beige);
@@ -772,22 +775,22 @@
 
         .nav-tab {
             background: linear-gradient(145deg, #ffffff, #f8f9fa);
-            border: 2px solid transparent;
+            border: 1.5px solid transparent;
             cursor: pointer;
-            padding: 10px 22px;
+            padding: 6px 14px;
             font-family: 'Cairo', sans-serif;
-            font-size: 1em;
+            font-size: 0.85em;
             color: #2b4d24;
             font-weight: 800;
-            border-radius: var(--btn-radius);
+            border-radius: 30px;
             transition: var(--transition-smooth);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            gap: 4px;
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.1);
             white-space: nowrap;
-            flex: 0 0 auto;
+            flex: 0 0 auto; /* منع العناصر من الانكماش */
             position: relative;
             overflow: hidden;
         }
@@ -804,28 +807,29 @@
         .nav-tab:hover::before {
             left: 100%;
         }
-        .nav-tab:active { transform: scale(0.96); }
+        .nav-tab:active { transform: scale(0.94); }
         .nav-tab:hover {
             color: #1f4a1a;
-            transform: translateY(-4px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
             border-color: #ffffff;
         }
         .nav-tab.active {
             background: linear-gradient(145deg, #3f8b3a, #7cb86b, #b3e6a0);
             color: var(--pure-white);
-            box-shadow: 0 10px 25px rgba(45, 90, 39, 0.9), 0 15px 35px rgba(45, 90, 39, 0.6);
-            transform: translateY(-4px);
-            border: 2px solid var(--pure-white);
-            text-shadow: 0 0 15px rgba(0, 0, 0, 0.9);
+            box-shadow: 0 8px 18px rgba(45, 90, 39, 0.7), 0 10px 20px rgba(45, 90, 39, 0.4);
+            transform: translateY(-2px);
+            border: 1.5px solid var(--pure-white);
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
         }
-        .nav-tab.active i { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 1)); }
+        .nav-tab.active i { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 1)); }
         .nav-tab i {
-            font-size: 1.3em;
+            font-size: 1em;
             color: inherit;
             transition: transform .3s ease;
         }
 
+        /* ===== بطاقات المنتجات بدون صور خلفية (خلفية بيضاء ناعمة) ===== */
         .menu-container {
             max-width: 1400px;
             margin: 20px auto 40px;
@@ -867,9 +871,7 @@
 
         .product-card {
             position: relative;
-            background-image: url('https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=500&auto=format');
-            background-size: cover;
-            background-position: center;
+            background-color: #fefefe;
             border-radius: 24px;
             overflow: hidden;
             box-shadow: var(--shadow-elevation);
@@ -882,16 +884,7 @@
         }
 
         .product-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: inherit;
-            z-index: 1;
-            pointer-events: none;
+            display: none;
         }
 
         .product-card > * {
@@ -913,7 +906,8 @@
             box-shadow: 0 0 15px rgba(255,255,255,0.8);
             transition: transform 0.4s ease;
             flex-shrink: 0;
-            cursor: pointer; /* مؤشر اليد */
+            cursor: pointer;
+            loading: lazy;
         }
         .product-card:hover .product-image {
             transform: scale(1.02);
@@ -1050,79 +1044,40 @@
             box-shadow: 0 10px 20px rgba(45, 90, 39, 0.7);
         }
 
-        /* ==== أزرار النكهة (مضافة من الكود رقم 1) ==== */
-        /* الزر البسيط (للمشروبات الساخنة والباردة) */
-        .flavor-simple-btn {
+        /* ==== أزرار النكهة ==== */
+        .flavor-simple-btn, .flavor-mojito-btn {
             width: 100%;
-            padding: 8px;
+            padding: 6px;
             background: rgba(255, 255, 255, 0.2);
             color: white;
             border: 2px solid #ffffff;
             border-radius: 40px;
-            font-size: 0.8em;
+            font-size: 0.7em;
             font-weight: 900;
-            cursor: not-allowed;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 5px;
             transition: var(--transition-smooth);
             margin-top: 5px;
             opacity: 0.6;
             pointer-events: none;
         }
-        .flavor-simple-btn.enabled {
+        .flavor-simple-btn.enabled, .flavor-mojito-btn.enabled {
             background: linear-gradient(145deg, #2e7d32, #4caf50);
             color: white;
             border-color: #ffffff;
             opacity: 1;
             cursor: pointer;
             pointer-events: auto;
-            box-shadow: 0 5px 15px #4caf50;
+            box-shadow: 0 4px 10px #4caf50;
         }
-        .flavor-simple-btn.enabled:hover {
+        .flavor-simple-btn.enabled:hover, .flavor-mojito-btn.enabled:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px #4caf50;
+            box-shadow: 0 8px 20px #4caf50;
         }
-        .flavor-simple-btn i {
-            font-size: 1em;
-        }
-
-        /* الزر الخاص بالموهيتو (الذي يفتح مودال) */
-        .flavor-mojito-btn {
-            width: 100%;
-            padding: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 2px solid #ffffff;
-            border-radius: 40px;
-            font-size: 0.8em;
-            font-weight: 900;
-            cursor: not-allowed;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: var(--transition-smooth);
-            margin-top: 5px;
-            opacity: 0.6;
-            pointer-events: none;
-        }
-        .flavor-mojito-btn.enabled {
-            background: linear-gradient(145deg, #2e7d32, #4caf50);
-            color: white;
-            border-color: #ffffff;
-            opacity: 1;
-            cursor: pointer;
-            pointer-events: auto;
-            box-shadow: 0 5px 15px #4caf50;
-        }
-        .flavor-mojito-btn.enabled:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px #4caf50;
-        }
-        .flavor-mojito-btn i {
-            font-size: 1em;
+        .flavor-simple-btn i, .flavor-mojito-btn i {
+            font-size: 0.9em;
         }
 
         /* مودال اختيار النكهات للموهيتو */
@@ -1528,6 +1483,34 @@
                 font-size: 1.2em;
                 margin-bottom: 4px;
             }
+            .nav-tab {
+                padding: 5px 10px;
+                font-size: 0.8em;
+            }
+            .nav-tab i {
+                font-size: 0.9em;
+            }
+        }
+
+        /* ===== مؤشر التحميل المتحسن ===== */
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+            width: 100%;
+        }
+        .loading-spinner::after {
+            content: '';
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -1614,20 +1597,23 @@
             </h1>
         </div>
         
+        <!-- شريط التبويبات المحسّن (أصغر وأكثر احترافية) - مع تمرير كامل -->
         <div class="nav-tabs" id="navTabs"></div>
     </header>
 
-    <main class="menu-container" id="menuContainer"></main>
+    <main class="menu-container" id="menuContainer">
+        <div class="loading-spinner"></div>
+    </main>
 
     <!-- مودال عرض الصورة -->
     <div class="image-modal" id="imageModal" onclick="closeImageModal(event)">
         <span class="close-image-modal" onclick="closeImageModal()">&times;</span>
         <div class="image-modal-content">
-            <img id="modalImage" src="" alt="صورة المنتج">
+            <img id="modalImage" src="" alt="صورة المنتج" loading="lazy">
         </div>
     </div>
 
-    <!-- مودال اختيار النكهات (للموهيتو) - مضافة من الكود رقم 1 -->
+    <!-- مودال اختيار النكهات (للموهيتو) -->
     <div class="flavor-modal" id="flavorModal">
         <div class="flavor-modal-content">
             <h3>اختر النكهة</h3>
@@ -1696,7 +1682,6 @@
     </footer>
 
     <script>
-        // ================== منع التكبير (zoom) بشكل كامل ==================
         (function preventZoom() {
             document.addEventListener('wheel', function(e) {
                 if (e.ctrlKey) {
@@ -1715,10 +1700,11 @@
             });
         })();
 
-        // ================== إنشاء الأوراق المتساقطة ==================
+        // تحسين إنشاء الأوراق: تقليل العدد لتحسين الأداء
         function createLeaves() {
             const leavesContainer = document.getElementById('fallingLeaves');
-            const leafCount = 30;
+            if (!leavesContainer) return;
+            const leafCount = 12; // تم التخفيض أكثر
             for (let i = 0; i < leafCount; i++) {
                 const leaf = document.createElement('div');
                 leaf.className = 'leaf';
@@ -1735,36 +1721,32 @@
             }
         }
 
-        // ================== دوال عرض الصورة ==================
         function openImageModal(imageSrc) {
             const modal = document.getElementById('imageModal');
             const modalImg = document.getElementById('modalImage');
             modalImg.src = imageSrc;
             modal.classList.add('active');
-            document.body.style.overflow = 'hidden'; // منع التمرير
+            document.body.style.overflow = 'hidden';
         }
 
         function closeImageModal(event) {
             if (event && event.target !== document.getElementById('imageModal') && event.target.className !== 'close-image-modal') return;
             const modal = document.getElementById('imageModal');
             modal.classList.remove('active');
-            document.body.style.overflow = ''; // استعادة التمرير
+            document.body.style.overflow = '';
         }
 
-        // ================== روابط السيرفرات ==================
         const OLD_API_URL = 'https://script.google.com/macros/s/AKfycbzU7pp0Ul8KNDT4iEd7kGFxNrXYzX4B4zfdYANjE59ABvMq1vIKlmEM4gAOipY47Zeoiw/exec';
         const NEW_API_URL = 'https://script.google.com/macros/s/AKfycbyf1LnxXlGpllpyNeO9Gez1ah-DUSaVfTk3KhPDV8lDtN_Zga1GMZDaM387o0XWhIIW/exec';
 
-        // ================== حالة التطبيق ==================
         let categories = [];
         let products = [];
         const AppState = {
             cart: [],
             currentSection: null,
-            selectedProductForFlavor: null // للموهيتو (مضافة من الكود رقم 1)
+            selectedProductForFlavor: null
         };
 
-        // قائمة بأسماء المنتجات التي سيظهر لها زر نكهة بسيط (0.5 د.أ) - مطابقة تامة (من الكود رقم 1)
         const SIMPLE_FLAVOR_PRODUCTS = [
             'لاتيه',
             'سبانيش لاتيه',
@@ -1773,6 +1755,29 @@
             'ايس سبانيش لاتيه'
         ];
 
+        // محاولة تحميل البيانات المخزنة محلياً
+        function loadCachedData() {
+            try {
+                const cached = localStorage.getItem('telalsindian_menu');
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    if (data.categories && data.products) {
+                        categories = data.categories;
+                        products = data.products;
+                        categories.sort((a, b) => (a.order || 0) - (b.order || 0));
+                        renderCategories();
+                        if (categories.length > 0) {
+                            renderProducts(categories[0].id);
+                        }
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.warn('فشل تحميل البيانات المخزنة', e);
+            }
+            return false;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             createLeaves();
 
@@ -1780,18 +1785,36 @@
                 document.getElementById('intro-screen').classList.add('hidden');
             }, 4000);
             
+            // محاولة التحميل من الكاش أولاً
+            if (!loadCachedData()) {
+                // إذا لم يكن هناك كاش، نظهر التحميل ثم نجلب البيانات
+                document.getElementById('menuContainer').innerHTML = '<div class="loading-spinner"></div>';
+            }
             loadMenuData();
         });
 
         async function loadMenuData() {
+            // مهلة للطلب: 8 ثوانٍ فقط
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
             try {
-                const response = await fetch(`${NEW_API_URL}?action=getMenuData`);
+                const response = await fetch(`${NEW_API_URL}?action=getMenuData`, { signal: controller.signal });
+                clearTimeout(timeoutId);
                 const data = await response.json();
                 if (data.success) {
                     categories = data.categories || [];
                     products = data.products || [];
                     
                     categories.sort((a, b) => (a.order || 0) - (b.order || 0));
+                    
+                    // تخزين في localStorage
+                    try {
+                        localStorage.setItem('telalsindian_menu', JSON.stringify({
+                            categories: categories,
+                            products: products
+                        }));
+                    } catch (e) { /* تجاهل */ }
                     
                     renderCategories();
                     if (categories.length > 0) {
@@ -1801,9 +1824,20 @@
                     }
                 } else {
                     console.error('فشل تحميل البيانات');
+                    showNotification('فشل تحميل القائمة، استخدم البيانات المخزنة', 'error');
+                    // إذا فشل التحميل ولم تكن هناك بيانات مخزنة مسبقاً، نظهر رسالة
+                    if (!categories.length) {
+                        document.getElementById('menuContainer').innerHTML = '<div style="text-align:center; color:white;">تعذر تحميل القائمة. تحقق من اتصالك بالإنترنت.</div>';
+                    }
                 }
             } catch (error) {
+                clearTimeout(timeoutId);
                 console.error('خطأ في الاتصال بالسيرفر الجديد:', error);
+                showNotification('مشكلة في الاتصال، استخدم البيانات المحفوظة', 'error');
+                // إذا لم تكن هناك بيانات مخزنة، نظهر رسالة
+                if (!categories.length) {
+                    document.getElementById('menuContainer').innerHTML = '<div style="text-align:center; color:white;">لا يمكن تحميل القائمة حالياً.<br>يرجى التحقق من الاتصال بالإنترنت.</div>';
+                }
             }
         }
 
@@ -1834,7 +1868,6 @@
             renderProducts(catId);
         }
 
-        // دالة للتحقق مما إذا كان المنتج من الموهيتو (من الكود رقم 1)
         function isMojitoProduct(productId) {
             const product = products.find(p => p.id === productId);
             if (!product) return false;
@@ -1842,12 +1875,10 @@
             return category?.name?.includes('موهيتو') || false;
         }
 
-        // دالة للتحقق مما إذا كان المنتج يستحق زر نكهة بسيط (0.5 د.أ) - مطابقة تامة (من الكود رقم 1)
         function hasSimpleFlavor(productId) {
             const product = products.find(p => p.id === productId);
             if (!product) return false;
             const productName = product.name.trim();
-            // قائمة الأسماء الدقيقة التي يجب أن يظهر لها الزر
             return SIMPLE_FLAVOR_PRODUCTS.includes(productName);
         }
 
@@ -1866,7 +1897,6 @@
                 return;
             }
 
-            // تحديد ما إذا كان هذا القسم هو الموهيتو (بناءً على اسم القسم) - (من الكود رقم 1)
             const isMohetoSection = category?.name?.includes('موهيتو') || false;
 
             container.innerHTML = `
@@ -1874,14 +1904,12 @@
                     <h2 class="section-title">${category?.name || ''}</h2>
                     <div class="products-grid">
                         ${filteredProducts.map(product => {
-                            // التحقق مما إذا كان هذا المنتج يجب أن يحصل على زر نكهة بسيط
                             const showSimpleFlavor = hasSimpleFlavor(product.id);
-                            // التحقق مما إذا كان المنتج من الموهيتو (لإضافة زر الموهيتو الخاص)
-                            const showMojitoFlavor = isMohetoSection; // في قسم الموهيتو، كل المنتجات تحصل على زر الموهيتو
+                            const showMojitoFlavor = isMohetoSection;
 
                             return `
                             <div class="product-card">
-                                <img src="${product.image}" class="product-image" onclick="openImageModal('${product.image}')" onerror="this.src='https://via.placeholder.com/512x512/2D5A27/FFFFFF?text=تل+السنديان'">
+                                <img src="${product.image}" class="product-image" onclick="openImageModal('${product.image}')" onerror="this.src='https://via.placeholder.com/512x512/2D5A27/FFFFFF?text=تل+السنديان'" loading="lazy">
                                 <div class="card-content">
                                     <h3 class="product-title">${product.name} ${product.isNew ? '<span class="new-tag">جديد</span>' : ''}</h3>
                                     <p class="product-description">${product.description}</p>
@@ -1910,7 +1938,6 @@
                     </div>
                 </div>
             `;
-            // بعد رسم العناصر، نقوم بتحديث حالة أزرار النكهات
             updateFlavorButtons();
         }
 
@@ -1943,24 +1970,19 @@
             document.getElementById(`qty-${productId}`).textContent = '1';
             updateCartBadge();
             showNotification('تمت الإضافة إلى السلة', 'success');
-
-            // تحديث أزرار النكهات
             updateFlavorButtons();
         }
 
-        // ===== دوال النكهة البسيطة (0.5 د.أ) - من الكود رقم 1 =====
         function addSimpleFlavor(productId) {
             const product = products.find(p => p.id === productId);
             if (!product) return;
 
-            // التحقق من أن المنتج موجود في السلة (يجب أن يكون قد أضيف أولاً)
             const cartItem = AppState.cart.find(item => item.id === productId);
             if (!cartItem) {
                 showNotification('أضف المنتج إلى السلة أولاً', 'error');
                 return;
             }
 
-            // إضافة النكهة إلى السلة كعنصر منفصل
             const flavorId = `simple-flavor-${productId}-${Date.now()}`;
             AppState.cart.push({
                 id: flavorId,
@@ -1968,23 +1990,20 @@
                 price: 0.50,
                 quantity: 1,
                 isFlavor: true,
-                parentProductId: productId // لتتبع المنتج الأصلي (اختياري)
+                parentProductId: productId
             });
 
             updateCartBadge();
             showNotification('تمت إضافة النكهة (+0.50 د.أ)', 'success');
         }
 
-        // ===== دوال الموهيتو (مودال النكهات) - من الكود رقم 1 =====
         function openFlavorModal(productId) {
-            // التحقق من أن هذا المنتج موجود في السلة (حتى نسمح بإضافة نكهة)
             const cartItem = AppState.cart.find(item => item.id === productId);
             if (!cartItem) {
                 showNotification('أضف المنتج إلى السلة أولاً', 'error');
                 return;
             }
 
-            // حساب عدد المشروبات (الموهيتو) في السلة
             const mojitoCount = AppState.cart.reduce((sum, item) => {
                 if (isMojitoProduct(item.id)) {
                     return sum + item.quantity;
@@ -1992,7 +2011,6 @@
                 return sum;
             }, 0);
 
-            // حساب عدد النكهات المضافة (للموهيتو)
             const flavorsCount = AppState.cart.filter(item => item.isFlavor && item.parentProductId && isMojitoProduct(item.parentProductId)).length;
 
             if (flavorsCount >= mojitoCount) {
@@ -2016,7 +2034,6 @@
             const product = products.find(p => p.id === productId);
             if (!product) return;
 
-            // إضافة النكهة إلى السلة كعنصر منفصل
             const flavorId = `mojito-flavor-${productId}-${Date.now()}`;
             AppState.cart.push({
                 id: flavorId,
@@ -2032,12 +2049,9 @@
             closeFlavorModal();
         }
 
-        // دالة تحديث حالة أزرار النكهات (تمكين/تعطيل) - من الكود رقم 1
         function updateFlavorButtons() {
-            // أزرار النكهة البسيطة
             document.querySelectorAll('.flavor-simple-btn').forEach(btn => {
                 const productId = btn.dataset.productId;
-                // المنتج في السلة؟
                 const productInCart = AppState.cart.some(item => item.id === productId);
                 if (productInCart) {
                     btn.classList.add('enabled');
@@ -2048,7 +2062,6 @@
                 }
             });
 
-            // أزرار الموهيتو
             const mojitoCount = AppState.cart.reduce((sum, item) => {
                 if (isMojitoProduct(item.id)) {
                     return sum + item.quantity;
@@ -2074,7 +2087,6 @@
         function updateCartBadge() {
             const totalItems = AppState.cart.reduce((sum, item) => sum + item.quantity, 0);
             document.getElementById('cartBadge').textContent = totalItems;
-            // تحديث أزرار النكهات كلما تغيرت السلة
             updateFlavorButtons();
         }
 
@@ -2200,12 +2212,19 @@
                 formData.append('action', 'saveOrder');
                 formData.append('data', JSON.stringify(orderData));
                 
+                // مهلة للطلب
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                
                 await fetch(OLD_API_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
                 
                 showNotification('✅ تم إرسال الطلب بنجاح!', 'success');
                 
@@ -2219,7 +2238,7 @@
                 
             } catch (error) {
                 console.error('Order submission error:', error);
-                showNotification('❌ حدث خطأ في إرسال الطلب', 'error');
+                showNotification('❌ حدث خطأ في إرسال الطلب. تحقق من اتصالك.', 'error');
                 
                 const submitBtn = event.target.querySelector('button[type="submit"]');
                 submitBtn.textContent = 'تأكيد الطلب';
