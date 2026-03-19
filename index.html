@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🌲تل السنديان - الدفع الإلكتروني</title>
+    <title>🌲تل السنديان </title>
     <link rel="apple-touch-icon" href="https://iili.io/qfhk5Pt.png">
     <link rel="icon" href="https://iili.io/qfhk5Pt.png">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
@@ -1247,7 +1247,6 @@
             background: rgba(255,255,255,0.3);
         }
 
-        /* مودال عرض السلة */
         .modal {
             display: none;
             position: fixed;
@@ -1365,15 +1364,7 @@
             box-shadow: 0 20px 40px #2b5e25;
         }
 
-        /* مودال الدفع */
-        .payment-modal .modal-content {
-            max-width: 500px;
-        }
-
-        .form-group { 
-            margin-bottom: 25px; 
-            text-align: right;
-        }
+        .form-group { margin-bottom: 25px; }
         .form-group label {
             display: block;
             margin-bottom: 10px;
@@ -1420,7 +1411,7 @@
         }
         .error-message.visible { display: block; }
 
-        .pay-btn {
+        .submit-order {
             background: linear-gradient(145deg, #2b5e25, #5cb85c, #8bc34a);
             color: white;
             padding: 18px 30px;
@@ -1431,43 +1422,8 @@
             width: 100%;
             cursor: pointer;
             transition: var(--transition-smooth);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
         }
-        .pay-btn i { font-size: 1.2em; }
-        .pay-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* مودال المعالجة */
-        #processingModal .modal-content {
-            text-align: center;
-        }
-
-        /* مودال المحاكاة */
-        #simulationModal .modal-content {
-            text-align: center;
-        }
-
-        .loading-spinner {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100px;
-            width: 100%;
-        }
-        .loading-spinner::after {
-            content: '';
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255,255,255,0.3);
-            border-top-color: #ffffff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        .submit-order:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .footer {
             background: linear-gradient(145deg, #1f4a1a, #3f8b3a, #7cb86b);
@@ -1535,13 +1491,33 @@
                 font-size: 0.9em;
             }
         }
+
+        /* ===== مؤشر التحميل المتحسن ===== */
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+            width: 100%;
+        }
+        .loading-spinner::after {
+            content: '';
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <div id="animated-forest-bg"></div>
     <div class="falling-leaves" id="fallingLeaves"></div>
 
-    <!-- شاشة البداية -->
     <div id="intro-screen">
         <div class="intro-burst-container">
             <span class="intro-burst-particle" style="font-size: 45px; --x-offset: -120px; --y-offset: -180px; animation-delay: 0.1s;">🌿</span>
@@ -1621,6 +1597,7 @@
             </h1>
         </div>
         
+        <!-- شريط التبويبات المحسّن (أصغر وأكثر احترافية) - مع تمرير كامل -->
         <div class="nav-tabs" id="navTabs"></div>
     </header>
 
@@ -1661,7 +1638,6 @@
         <span class="cart-badge" id="cartBadge">0</span>
     </div>
 
-    <!-- مودال عرض السلة -->
     <div class="modal" id="cartModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1670,54 +1646,30 @@
             </div>
             <div id="cartItems"></div>
             <div class="cart-total" id="cartTotal">المجموع: 0 د.أ</div>
-            <button class="checkout-btn" id="proceedToPaymentBtn" onclick="showPaymentModal()">
-                <i class="fas fa-credit-card"></i> متابعة للدفع الإلكتروني
-            </button>
+            <button class="checkout-btn" id="checkoutBtn" onclick="showCheckout()">متابعة الطلب</button>
         </div>
     </div>
 
-    <!-- مودال الدفع -->
-    <div class="modal payment-modal" id="paymentModal">
+    <div class="modal" id="checkoutModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>💳 إتمام الدفع</h2>
-                <button class="close-btn" onclick="closePaymentModal()">×</button>
+                <h2>📋 تفاصيل الطلب</h2>
+                <button class="close-btn" onclick="closeCheckout()">×</button>
             </div>
-            <form id="paymentForm" onsubmit="startPayment(event)">
+            <form id="orderForm" onsubmit="submitOrder(event)">
                 <div class="form-group">
                     <label>رقم الطاولة <span style="color: #ff4444;">*</span></label>
-                    <input type="number" id="paymentTableNumber" name="tableNumber" class="table-input" required min="1" step="1" inputmode="numeric" pattern="\d*" placeholder="أدخل رقم الطاولة" onkeypress="return (event.charCode >= 48 && event.charCode <= 57)" oninput="validatePaymentTable(this)">
-                    <div class="error-message" id="paymentTableError">يرجى إدخال رقم طاولة صحيح</div>
+                    <input type="number" id="tableNumber" name="tableNumber" class="table-input" required min="1" step="1" inputmode="numeric" pattern="\d*" placeholder="أدخل رقم الطاولة" onkeypress="return (event.charCode >= 48 && event.charCode <= 57)" oninput="validateTableNumber(this)">
+                    <div class="error-message" id="tableNumberError">يرجى إدخال رقم طاولة صحيح</div>
                 </div>
                 
                 <div class="form-group">
                     <label>ملاحظات (اختياري):</label>
-                    <textarea id="paymentNotes" rows="3" placeholder="أي ملاحظات إضافية..."></textarea>
+                    <textarea id="notes" rows="3" placeholder="أي ملاحظات إضافية..."></textarea>
                 </div>
                 
-                <button type="submit" class="pay-btn" id="payBtn">
-                    <i class="fas fa-lock"></i> ادفع الآن
-                </button>
+                <button type="submit" class="submit-order" id="submitOrderBtn">تأكيد الطلب</button>
             </form>
-        </div>
-    </div>
-
-    <!-- مودال المعالجة -->
-    <div class="modal" id="processingModal">
-        <div class="modal-content" style="text-align: center;">
-            <div class="loading-spinner" style="min-height: 100px;"></div>
-            <h3 style="color: #1f4a1a; margin-top: 20px;">جاري تحضير جلسة الدفع...</h3>
-            <p style="color: #2b5e25;">يرجى الانتظار قليلاً</p>
-        </div>
-    </div>
-
-    <!-- مودال المحاكاة (في حالة فشل الاتصال) -->
-    <div class="modal" id="simulationModal">
-        <div class="modal-content" style="text-align: center;">
-            <h3 style="color: #1f4a1a;">⚠️ وضع الاختبار المحلي</h3>
-            <p style="margin: 20px 0;">تعذر الاتصال ببوابة الدفع. سيتم استخدام محاكاة محلية للاختبار.</p>
-            <button class="pay-btn" onclick="startLocalSimulation()" style="margin-bottom: 10px;">متابعة بالاختبار المحلي</button>
-            <button class="close-btn" onclick="closeSimulationModal()">إلغاء</button>
         </div>
     </div>
 
@@ -1726,23 +1678,33 @@
             <i class="fab fa-instagram"></i>
         </a>
         <p>© 2026 تل السنديان - جميع الحقوق محفوظة</p>
-        <p style="margin-top: 3px; font-size: 0.7em;">نظام الطلبات الذكي v4.2 - الدفع الإلكتروني</p>
+        <p style="margin-top: 3px; font-size: 0.7em;">نظام الطلبات الذكي v3.0</p>
     </footer>
 
     <script>
         (function preventZoom() {
-            document.addEventListener('wheel', function(e) { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+            document.addEventListener('wheel', function(e) {
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
             document.addEventListener('keydown', function(e) {
-                if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '_' || e.key === '0')) e.preventDefault();
+                if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '_' || e.key === '0')) {
+                    e.preventDefault();
+                }
             });
-            document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+
+            document.addEventListener('gesturestart', function(e) {
+                e.preventDefault();
+            });
         })();
 
-        // إنشاء الأوراق المتساقطة
+        // تحسين إنشاء الأوراق: تقليل العدد لتحسين الأداء
         function createLeaves() {
             const leavesContainer = document.getElementById('fallingLeaves');
             if (!leavesContainer) return;
-            const leafCount = 12;
+            const leafCount = 12; // تم التخفيض أكثر
             for (let i = 0; i < leafCount; i++) {
                 const leaf = document.createElement('div');
                 leaf.className = 'leaf';
@@ -1769,7 +1731,8 @@
 
         function closeImageModal(event) {
             if (event && event.target !== document.getElementById('imageModal') && event.target.className !== 'close-image-modal') return;
-            document.getElementById('imageModal').classList.remove('active');
+            const modal = document.getElementById('imageModal');
+            modal.classList.remove('active');
             document.body.style.overflow = '';
         }
 
@@ -1781,38 +1744,18 @@
         const AppState = {
             cart: [],
             currentSection: null,
-            selectedProductForFlavor: null,
-            pendingOrder: null
+            selectedProductForFlavor: null
         };
 
         const SIMPLE_FLAVOR_PRODUCTS = [
-            'لاتيه', 'سبانيش لاتيه', 'وايت هوت شوكليت', 'ايس لاتيه', 'ايس سبانيش لاتيه'
+            'لاتيه',
+            'سبانيش لاتيه',
+            'وايت هوت شوكليت',
+            'ايس لاتيه',
+            'ايس سبانيش لاتيه'
         ];
 
-        // ========== إعدادات بوابة الدفع (محدثة) ==========
-        const MEPS_CONFIG = {
-            profileId: '177196',          // ✅ الرقم الصحيح
-            serverKey: 'S9J96GWZND-JMNNBGLMG6-TN26T6MZR9', // المفتاح السري
-
-            // الرابط الصحيح لبوابة الأردن
-            apiUrl: 'https://secure-jordan.paytabs.com/payment/request',
-            
-            // رابط الوكيل (لحل مشكلة CORS) – نشغله دائمًا للاختبار
-            proxyUrl: 'https://cors-anywhere.herokuapp.com/',
-            
-            // روابط العودة (استبدلها بروابط موقعك الفعلية)
-            returnUrl: 'https://tal-alsindian.github.io/payment-success.html', // ⚠️ عدّل هذا
-            callbackUrl: 'https://tal-alsindian.github.io/api/callback', // اختياري
-
-            // طريقة التوثيق
-            authType: 'bearer', // جرب 'direct' إذا لم ينجح
-            
-            // إجبار استخدام الوكيل لكل الطلبات (للاختبار فقط)
-            forceProxy: true, // ✅ فعّله الآن، وسيتم تعطيله للإنتاج
-        };
-        // =================================================
-
-        // دوال تحميل البيانات
+        // محاولة تحميل البيانات المخزنة محلياً
         function loadCachedData() {
             try {
                 const cached = localStorage.getItem('telalsindian_menu');
@@ -1823,24 +1766,38 @@
                         products = data.products;
                         categories.sort((a, b) => (a.order || 0) - (b.order || 0));
                         renderCategories();
-                        if (categories.length > 0) renderProducts(categories[0].id);
+                        if (categories.length > 0) {
+                            renderProducts(categories[0].id);
+                        }
                         return true;
                     }
                 }
-            } catch (e) { console.warn('فشل تحميل البيانات المخزنة', e); }
+            } catch (e) {
+                console.warn('فشل تحميل البيانات المخزنة', e);
+            }
             return false;
         }
 
         document.addEventListener('DOMContentLoaded', function() {
             createLeaves();
-            setTimeout(() => document.getElementById('intro-screen').classList.add('hidden'), 4000);
-            if (!loadCachedData()) document.getElementById('menuContainer').innerHTML = '<div class="loading-spinner"></div>';
+
+            setTimeout(() => {
+                document.getElementById('intro-screen').classList.add('hidden');
+            }, 4000);
+            
+            // محاولة التحميل من الكاش أولاً
+            if (!loadCachedData()) {
+                // إذا لم يكن هناك كاش، نظهر التحميل ثم نجلب البيانات
+                document.getElementById('menuContainer').innerHTML = '<div class="loading-spinner"></div>';
+            }
             loadMenuData();
         });
 
         async function loadMenuData() {
+            // مهلة للطلب: 8 ثوانٍ فقط
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 8000);
+
             try {
                 const response = await fetch(`${NEW_API_URL}?action=getMenuData`, { signal: controller.signal });
                 clearTimeout(timeoutId);
@@ -1848,27 +1805,46 @@
                 if (data.success) {
                     categories = data.categories || [];
                     products = data.products || [];
+                    
                     categories.sort((a, b) => (a.order || 0) - (b.order || 0));
-                    try { localStorage.setItem('telalsindian_menu', JSON.stringify({ categories, products })); } catch (e) { }
+                    
+                    // تخزين في localStorage
+                    try {
+                        localStorage.setItem('telalsindian_menu', JSON.stringify({
+                            categories: categories,
+                            products: products
+                        }));
+                    } catch (e) { /* تجاهل */ }
+                    
                     renderCategories();
-                    if (categories.length > 0) renderProducts(categories[0].id);
-                    else document.getElementById('menuContainer').innerHTML = '<div class="empty-state">لا توجد أصناف متاحة حالياً</div>';
+                    if (categories.length > 0) {
+                        renderProducts(categories[0].id);
+                    } else {
+                        document.getElementById('menuContainer').innerHTML = '<div class="empty-state">لا توجد أصناف متاحة حالياً</div>';
+                    }
                 } else {
                     console.error('فشل تحميل البيانات');
                     showNotification('فشل تحميل القائمة، استخدم البيانات المخزنة', 'error');
-                    if (!categories.length) document.getElementById('menuContainer').innerHTML = '<div style="text-align:center; color:white;">تعذر تحميل القائمة. تحقق من اتصالك بالإنترنت.</div>';
+                    // إذا فشل التحميل ولم تكن هناك بيانات مخزنة مسبقاً، نظهر رسالة
+                    if (!categories.length) {
+                        document.getElementById('menuContainer').innerHTML = '<div style="text-align:center; color:white;">تعذر تحميل القائمة. تحقق من اتصالك بالإنترنت.</div>';
+                    }
                 }
             } catch (error) {
                 clearTimeout(timeoutId);
                 console.error('خطأ في الاتصال بالسيرفر الجديد:', error);
                 showNotification('مشكلة في الاتصال، استخدم البيانات المحفوظة', 'error');
-                if (!categories.length) document.getElementById('menuContainer').innerHTML = '<div style="text-align:center; color:white;">لا يمكن تحميل القائمة حالياً.<br>يرجى التحقق من الاتصال بالإنترنت.</div>';
+                // إذا لم تكن هناك بيانات مخزنة، نظهر رسالة
+                if (!categories.length) {
+                    document.getElementById('menuContainer').innerHTML = '<div style="text-align:center; color:white;">لا يمكن تحميل القائمة حالياً.<br>يرجى التحقق من الاتصال بالإنترنت.</div>';
+                }
             }
         }
 
         function renderCategories() {
             const navTabs = document.getElementById('navTabs');
             if (!navTabs) return;
+            
             navTabs.innerHTML = categories.map(cat => `
                 <div class="nav-tab ${cat.id === categories[0]?.id ? 'active' : ''}" onclick="switchCategory('${cat.id}', this)">
                     <i class="fas ${getIconForCategory(cat.name)}"></i>
@@ -1902,18 +1878,27 @@
         function hasSimpleFlavor(productId) {
             const product = products.find(p => p.id === productId);
             if (!product) return false;
-            return SIMPLE_FLAVOR_PRODUCTS.includes(product.name.trim());
+            const productName = product.name.trim();
+            return SIMPLE_FLAVOR_PRODUCTS.includes(productName);
         }
 
         function renderProducts(categoryId) {
             const container = document.getElementById('menuContainer');
             const category = categories.find(c => c.id === categoryId);
             const filteredProducts = products.filter(p => p.categoryId === categoryId).sort((a, b) => (a.order || 0) - (b.order || 0));
+            
             if (!filteredProducts.length) {
-                container.innerHTML = `<div class="menu-section active"><h2 class="section-title">${category?.name || ''}</h2><p style="text-align:center; color:var(--pure-white);">لا توجد منتجات في هذا القسم</p></div>`;
+                container.innerHTML = `
+                    <div class="menu-section active">
+                        <h2 class="section-title">${category?.name || ''}</h2>
+                        <p style="text-align:center; color:var(--pure-white);">لا توجد منتجات في هذا القسم</p>
+                    </div>
+                `;
                 return;
             }
+
             const isMohetoSection = category?.name?.includes('موهيتو') || false;
+
             container.innerHTML = `
                 <div class="menu-section active">
                     <h2 class="section-title">${category?.name || ''}</h2>
@@ -1921,6 +1906,7 @@
                         ${filteredProducts.map(product => {
                             const showSimpleFlavor = hasSimpleFlavor(product.id);
                             const showMojitoFlavor = isMohetoSection;
+
                             return `
                             <div class="product-card">
                                 <img src="${product.image}" class="product-image" onclick="openImageModal('${product.image}')" onerror="this.src='https://via.placeholder.com/512x512/2D5A27/FFFFFF?text=تل+السنديان'" loading="lazy">
@@ -1936,8 +1922,16 @@
                                     <button class="add-to-cart-btn" onclick="addToCart('${product.id}')">
                                         <i class="fas fa-cart-plus"></i> أضف إلى السلة
                                     </button>
-                                    ${showSimpleFlavor ? `<button class="flavor-simple-btn" id="flavor-simple-${product.id}" data-product-id="${product.id}" onclick="addSimpleFlavor('${product.id}')"><i class="fas fa-leaf"></i> نكهة +0.50 د.أ</button>` : ''}
-                                    ${showMojitoFlavor ? `<button class="flavor-mojito-btn" id="flavor-mojito-${product.id}" data-product-id="${product.id}" onclick="openFlavorModal('${product.id}')"><i class="fas fa-leaf"></i> نكهة</button>` : ''}
+                                    ${showSimpleFlavor ? `
+                                    <button class="flavor-simple-btn" id="flavor-simple-${product.id}" data-product-id="${product.id}" onclick="addSimpleFlavor('${product.id}')">
+                                        <i class="fas fa-leaf"></i> نكهة +0.50 د.أ
+                                    </button>
+                                    ` : ''}
+                                    ${showMojitoFlavor ? `
+                                    <button class="flavor-mojito-btn" id="flavor-mojito-${product.id}" data-product-id="${product.id}" onclick="openFlavorModal('${product.id}')">
+                                        <i class="fas fa-leaf"></i> نكهة
+                                    </button>
+                                    ` : ''}
                                 </div>
                             </div>
                         `}).join('')}
@@ -1958,10 +1952,21 @@
         function addToCart(productId) {
             const product = products.find(p => p.id === productId);
             if (!product) return;
+            
             const quantity = parseInt(document.getElementById(`qty-${productId}`).textContent);
+            
             const existingItem = AppState.cart.find(item => item.id === productId);
-            if (existingItem) existingItem.quantity += quantity;
-            else AppState.cart.push({ id: productId, name: product.name, price: product.price, quantity });
+            if (existingItem) {
+                existingItem.quantity += quantity;
+            } else {
+                AppState.cart.push({
+                    id: productId,
+                    name: product.name,
+                    price: product.price,
+                    quantity: quantity
+                });
+            }
+            
             document.getElementById(`qty-${productId}`).textContent = '1';
             updateCartBadge();
             showNotification('تمت الإضافة إلى السلة', 'success');
@@ -1971,19 +1976,48 @@
         function addSimpleFlavor(productId) {
             const product = products.find(p => p.id === productId);
             if (!product) return;
+
             const cartItem = AppState.cart.find(item => item.id === productId);
-            if (!cartItem) { showNotification('أضف المنتج إلى السلة أولاً', 'error'); return; }
-            AppState.cart.push({ id: `simple-flavor-${productId}-${Date.now()}`, name: `نكهة إضافية - ${product.name}`, price: 0.50, quantity: 1, isFlavor: true, parentProductId: productId });
+            if (!cartItem) {
+                showNotification('أضف المنتج إلى السلة أولاً', 'error');
+                return;
+            }
+
+            const flavorId = `simple-flavor-${productId}-${Date.now()}`;
+            AppState.cart.push({
+                id: flavorId,
+                name: `نكهة إضافية - ${product.name}`,
+                price: 0.50,
+                quantity: 1,
+                isFlavor: true,
+                parentProductId: productId
+            });
+
             updateCartBadge();
             showNotification('تمت إضافة النكهة (+0.50 د.أ)', 'success');
         }
 
         function openFlavorModal(productId) {
             const cartItem = AppState.cart.find(item => item.id === productId);
-            if (!cartItem) { showNotification('أضف المنتج إلى السلة أولاً', 'error'); return; }
-            const mojitoCount = AppState.cart.reduce((sum, item) => sum + (isMojitoProduct(item.id) ? item.quantity : 0), 0);
+            if (!cartItem) {
+                showNotification('أضف المنتج إلى السلة أولاً', 'error');
+                return;
+            }
+
+            const mojitoCount = AppState.cart.reduce((sum, item) => {
+                if (isMojitoProduct(item.id)) {
+                    return sum + item.quantity;
+                }
+                return sum;
+            }, 0);
+
             const flavorsCount = AppState.cart.filter(item => item.isFlavor && item.parentProductId && isMojitoProduct(item.parentProductId)).length;
-            if (flavorsCount >= mojitoCount) { showNotification('لا يمكن إضافة نكهة إضافية، عدد المشروبات لا يسمح', 'error'); return; }
+
+            if (flavorsCount >= mojitoCount) {
+                showNotification('لا يمكن إضافة نكهة إضافية، عدد المشروبات لا يسمح', 'error');
+                return;
+            }
+
             AppState.selectedProductForFlavor = productId;
             document.getElementById('flavorModal').classList.add('active');
         }
@@ -1996,9 +2030,20 @@
         function selectFlavor(flavorName, price) {
             const productId = AppState.selectedProductForFlavor;
             if (!productId) return;
+
             const product = products.find(p => p.id === productId);
             if (!product) return;
-            AppState.cart.push({ id: `mojito-flavor-${productId}-${Date.now()}`, name: `نكهة ${flavorName} - ${product.name}`, price, quantity: 1, isFlavor: true, parentProductId: productId });
+
+            const flavorId = `mojito-flavor-${productId}-${Date.now()}`;
+            AppState.cart.push({
+                id: flavorId,
+                name: `نكهة ${flavorName} - ${product.name}`,
+                price: price,
+                quantity: 1,
+                isFlavor: true,
+                parentProductId: productId
+            });
+
             updateCartBadge();
             showNotification(`تمت إضافة نكهة ${flavorName} (+${price.toFixed(2)} د.أ)`, 'success');
             closeFlavorModal();
@@ -2008,16 +2053,34 @@
             document.querySelectorAll('.flavor-simple-btn').forEach(btn => {
                 const productId = btn.dataset.productId;
                 const productInCart = AppState.cart.some(item => item.id === productId);
-                if (productInCart) { btn.classList.add('enabled'); btn.disabled = false; }
-                else { btn.classList.remove('enabled'); btn.disabled = true; }
+                if (productInCart) {
+                    btn.classList.add('enabled');
+                    btn.disabled = false;
+                } else {
+                    btn.classList.remove('enabled');
+                    btn.disabled = true;
+                }
             });
-            const mojitoCount = AppState.cart.reduce((sum, item) => sum + (isMojitoProduct(item.id) ? item.quantity : 0), 0);
+
+            const mojitoCount = AppState.cart.reduce((sum, item) => {
+                if (isMojitoProduct(item.id)) {
+                    return sum + item.quantity;
+                }
+                return sum;
+            }, 0);
+
             const mojitoFlavorsCount = AppState.cart.filter(item => item.isFlavor && item.parentProductId && isMojitoProduct(item.parentProductId)).length;
+
             document.querySelectorAll('.flavor-mojito-btn').forEach(btn => {
                 const productId = btn.dataset.productId;
                 const productInCart = AppState.cart.some(item => item.id === productId);
-                if (productInCart && mojitoFlavorsCount < mojitoCount) { btn.classList.add('enabled'); btn.disabled = false; }
-                else { btn.classList.remove('enabled'); btn.disabled = true; }
+                if (productInCart && mojitoFlavorsCount < mojitoCount) {
+                    btn.classList.add('enabled');
+                    btn.disabled = false;
+                } else {
+                    btn.classList.remove('enabled');
+                    btn.disabled = true;
+                }
             });
         }
 
@@ -2030,6 +2093,7 @@
         function showCart() {
             const modal = document.getElementById('cartModal');
             const cartItems = document.getElementById('cartItems');
+            
             if (AppState.cart.length === 0) {
                 cartItems.innerHTML = '<div style="text-align: center; padding: 30px;">السلة فارغة</div>';
                 document.getElementById('cartTotal').textContent = 'المجموع: 0 د.أ';
@@ -2061,7 +2125,9 @@
         function updateCartItem(index, change) {
             const item = AppState.cart[index];
             item.quantity += change;
-            if (item.quantity <= 0) AppState.cart.splice(index, 1);
+            if (item.quantity <= 0) {
+                AppState.cart.splice(index, 1);
+            }
             updateCartBadge();
             showCart();
         }
@@ -2072,201 +2138,113 @@
             showCart();
         }
 
-        function closeCart() { document.getElementById('cartModal').classList.remove('active'); }
-
-        function showPaymentModal() {
-            if (AppState.cart.length === 0) { showNotification('السلة فارغة', 'error'); return; }
+        function closeCart() {
             document.getElementById('cartModal').classList.remove('active');
-            document.getElementById('paymentModal').classList.add('active');
         }
 
-        function closePaymentModal() { document.getElementById('paymentModal').classList.remove('active'); }
+        function showCheckout() {
+            if (AppState.cart.length === 0) {
+                showNotification('السلة فارغة', 'error');
+                return;
+            }
+            
+            const tableInput = document.getElementById('tableNumber');
+            if (tableInput) {
+                tableInput.value = '';
+                tableInput.classList.remove('error');
+                document.getElementById('tableNumberError').classList.remove('visible');
+            }
+            
+            document.getElementById('cartModal').classList.remove('active');
+            document.getElementById('checkoutModal').classList.add('active');
+        }
 
-        function validatePaymentTable(input) {
-            const errorElement = document.getElementById('paymentTableError');
-            const payBtn = document.getElementById('payBtn');
+        function closeCheckout() {
+            document.getElementById('checkoutModal').classList.remove('active');
+        }
+
+        function validateTableNumber(input) {
+            const errorElement = document.getElementById('tableNumberError');
+            const submitBtn = document.getElementById('submitOrderBtn');
+            
             input.value = input.value.replace(/[^0-9]/g, '');
+            
             if (input.value && parseInt(input.value) > 0) {
                 input.classList.remove('error');
                 errorElement.classList.remove('visible');
-                if (payBtn) payBtn.disabled = false;
+                if (submitBtn) submitBtn.disabled = false;
                 return true;
             } else {
                 input.classList.add('error');
                 errorElement.classList.add('visible');
-                if (payBtn) payBtn.disabled = true;
+                if (submitBtn) submitBtn.disabled = true;
                 return false;
             }
         }
 
-        function showSimulationModal() {
-            document.getElementById('processingModal').classList.remove('active');
-            document.getElementById('simulationModal').classList.add('active');
-        }
-
-        function closeSimulationModal() {
-            document.getElementById('simulationModal').classList.remove('active');
-        }
-
-        function startLocalSimulation() {
-            closeSimulationModal();
-            showNotification('✅ محاكاة: تمت عملية الدفع بنجاح', 'success');
-            if (AppState.pendingOrder) {
-                completeOrderAfterPayment(AppState.pendingOrder, 'SIMULATED_TRANSACTION');
-            }
-        }
-
-        async function startPayment(event) {
+        async function submitOrder(event) {
             event.preventDefault();
             
-            const tableNumber = document.getElementById('paymentTableNumber').value.trim();
+            const tableNumber = document.getElementById('tableNumber').value.trim();
+            
             if (!tableNumber || !/^\d+$/.test(tableNumber) || parseInt(tableNumber) <= 0) {
                 showNotification('يرجى إدخال رقم طاولة صحيح', 'error');
                 return;
             }
             
-            const notes = document.getElementById('paymentNotes').value.trim();
-            const total = AppState.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2);
-            
-            AppState.pendingOrder = {
-                tableNumber: parseInt(tableNumber),
-                notes: notes,
-                items: AppState.cart.map(item => ({ ...item })),
-                total: total
-            };
-            
-            closePaymentModal();
-            document.getElementById('processingModal').classList.add('active');
-            
-            if (!navigator.onLine) {
-                document.getElementById('processingModal').classList.remove('active');
-                showSimulationModal();
-                showNotification('⚠️ أنت غير متصل بالإنترنت. سيتم استخدام وضع الاختبار المحلي.', 'error');
-                return;
-            }
-            
-            await createPaymentSession(AppState.pendingOrder);
-        }
-
-        async function createPaymentSession(order) {
-            try {
-                const cartId = `order-${Date.now()}-${order.tableNumber}`;
-                
-                const paymentData = {
-                    profile_id: MEPS_CONFIG.profileId,
-                    tran_type: 'sale',
-                    tran_class: 'ecom',
-                    cart_id: cartId,
-                    cart_description: `طلب من تل السنديان - طاولة ${order.tableNumber}`,
-                    cart_currency: 'JOD',
-                    cart_amount: parseFloat(order.total),
-                    return: MEPS_CONFIG.returnUrl,
-                    callback: MEPS_CONFIG.callbackUrl,
-                    customer_details: {
-                        name: 'عميل تل السنديان',
-                        email: 'customer@example.com'
-                    }
-                };
-
-                let headers = { 'Content-Type': 'application/json' };
-                if (MEPS_CONFIG.authType === 'bearer') {
-                    headers['Authorization'] = `Bearer ${MEPS_CONFIG.serverKey}`;
-                } else if (MEPS_CONFIG.authType === 'direct') {
-                    headers['Authorization'] = MEPS_CONFIG.serverKey;
-                } else if (MEPS_CONFIG.authType === 'basic') {
-                    const token = btoa(`${MEPS_CONFIG.profileId}:${MEPS_CONFIG.serverKey}`);
-                    headers['Authorization'] = `Basic ${token}`;
-                }
-
-                let apiUrl = MEPS_CONFIG.apiUrl;
-                if (MEPS_CONFIG.forceProxy && MEPS_CONFIG.proxyUrl) {
-                    apiUrl = MEPS_CONFIG.proxyUrl + MEPS_CONFIG.apiUrl;
-                }
-
-                console.log('محاولة الاتصال بالرابط:', apiUrl);
-                console.log('الهيدر:', headers);
-                console.log('البيانات المرسلة:', paymentData);
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify(paymentData)
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-
-                const result = await response.json();
-                console.log('استجابة بوابة الدفع:', result);
-
-                if (result.redirect_url) {
-                    window.location.href = result.redirect_url;
-                } else if (result.tran_ref && result.payment_result?.response_status === 'A') {
-                    showNotification('تمت عملية الدفع بنجاح', 'success');
-                    await completeOrderAfterPayment(order, result.tran_ref);
-                } else {
-                    document.getElementById('processingModal').classList.remove('active');
-                    showNotification('فشل إنشاء جلسة الدفع: ' + (result.message || JSON.stringify(result)), 'error');
-                }
-            } catch (error) {
-                console.error('خطأ في جلسة الدفع:', error);
-                document.getElementById('processingModal').classList.remove('active');
-                showSimulationModal();
-                showNotification('تعذر الاتصال ببوابة الدفع. يمكنك استخدام وضع الاختبار.', 'error');
-            }
-        }
-
-        async function completeOrderAfterPayment(order, tranRef) {
             const orderData = {
-                tableNumber: order.tableNumber,
-                notes: order.notes || '',
-                items: order.items,
-                total: order.total,
-                paymentStatus: 'paid',
-                paymentReference: tranRef,
+                tableNumber: parseInt(tableNumber),
+                notes: document.getElementById('notes').value.trim(),
+                items: AppState.cart,
+                total: AppState.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2),
                 source: 'web',
                 timestamp: new Date().toISOString(),
                 status: 'preparing'
             };
-
+            
             try {
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'جاري الإرسال...';
+                submitBtn.disabled = true;
+                
                 const formData = new URLSearchParams();
                 formData.append('action', 'saveOrder');
                 formData.append('data', JSON.stringify(orderData));
-
+                
+                // مهلة للطلب
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                
                 await fetch(OLD_API_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 });
-
-                showNotification('✅ تم تأكيد الدفع وإرسال الطلب!', 'success');
+                
+                clearTimeout(timeoutId);
+                
+                showNotification('✅ تم إرسال الطلب بنجاح!', 'success');
                 
                 AppState.cart = [];
                 updateCartBadge();
-                document.getElementById('processingModal')?.classList.remove('active');
-                document.getElementById('paymentModal')?.classList.remove('active');
-                document.getElementById('simulationModal')?.classList.remove('active');
+                closeCheckout();
+                event.target.reset();
+                
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                
             } catch (error) {
                 console.error('Order submission error:', error);
-                showNotification('❌ تم الدفع ولكن فشل إرسال الطلب. تواصل مع المطعم.', 'error');
+                showNotification('❌ حدث خطأ في إرسال الطلب. تحقق من اتصالك.', 'error');
+                
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                submitBtn.textContent = 'تأكيد الطلب';
+                submitBtn.disabled = false;
             }
         }
-
-        window.handlePaymentResult = function(paymentData) {
-            if (paymentData.respStatus === 'A' || paymentData.status === 'success') {
-                if (AppState.pendingOrder) {
-                    completeOrderAfterPayment(AppState.pendingOrder, paymentData.tranRef || paymentData.cart_id);
-                } else {
-                    showNotification('تم الدفع بنجاح، يمكنك متابعة طلبك', 'success');
-                }
-            } else {
-                showNotification('فشلت عملية الدفع', 'error');
-            }
-        };
 
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
