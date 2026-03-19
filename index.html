@@ -1365,7 +1365,7 @@
             box-shadow: 0 20px 40px #2b5e25;
         }
 
-        /* مودال الدفع (جديد) */
+        /* مودال الدفع */
         .payment-modal .modal-content {
             max-width: 500px;
         }
@@ -1541,6 +1541,7 @@
     <div id="animated-forest-bg"></div>
     <div class="falling-leaves" id="fallingLeaves"></div>
 
+    <!-- شاشة البداية -->
     <div id="intro-screen">
         <div class="intro-burst-container">
             <span class="intro-burst-particle" style="font-size: 45px; --x-offset: -120px; --y-offset: -180px; animation-delay: 0.1s;">🌿</span>
@@ -1627,6 +1628,7 @@
         <div class="loading-spinner"></div>
     </main>
 
+    <!-- مودال عرض الصورة -->
     <div class="image-modal" id="imageModal" onclick="closeImageModal(event)">
         <span class="close-image-modal" onclick="closeImageModal()">&times;</span>
         <div class="image-modal-content">
@@ -1634,6 +1636,7 @@
         </div>
     </div>
 
+    <!-- مودال اختيار النكهات (للموهيتو) -->
     <div class="flavor-modal" id="flavorModal">
         <div class="flavor-modal-content">
             <h3>اختر النكهة</h3>
@@ -1658,6 +1661,7 @@
         <span class="cart-badge" id="cartBadge">0</span>
     </div>
 
+    <!-- مودال عرض السلة -->
     <div class="modal" id="cartModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1672,6 +1676,7 @@
         </div>
     </div>
 
+    <!-- مودال الدفع -->
     <div class="modal payment-modal" id="paymentModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1697,6 +1702,7 @@
         </div>
     </div>
 
+    <!-- مودال المعالجة -->
     <div class="modal" id="processingModal">
         <div class="modal-content" style="text-align: center;">
             <div class="loading-spinner" style="min-height: 100px;"></div>
@@ -1705,6 +1711,7 @@
         </div>
     </div>
 
+    <!-- مودال المحاكاة (في حالة فشل الاتصال) -->
     <div class="modal" id="simulationModal">
         <div class="modal-content" style="text-align: center;">
             <h3 style="color: #1f4a1a;">⚠️ وضع الاختبار المحلي</h3>
@@ -1731,6 +1738,7 @@
             document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
         })();
 
+        // إنشاء الأوراق المتساقطة
         function createLeaves() {
             const leavesContainer = document.getElementById('fallingLeaves');
             if (!leavesContainer) return;
@@ -1781,18 +1789,28 @@
             'لاتيه', 'سبانيش لاتيه', 'وايت هوت شوكليت', 'ايس لاتيه', 'ايس سبانيش لاتيه'
         ];
 
-        // إعدادات بوابة الدفع المحدثة
+        // ========== إعدادات بوابة الدفع (محدثة) ==========
         const MEPS_CONFIG = {
-            profileId: '177196',
-            serverKey: 'S9J96GWZND-JMNNBGLMG6-TN26T6MZR9',
+            profileId: '177196',          // ✅ الرقم الصحيح
+            serverKey: 'S9J96GWZND-JMNNBGLMG6-TN26T6MZR9', // المفتاح السري
+
+            // الرابط الصحيح لبوابة الأردن
             apiUrl: 'https://secure-jordan.paytabs.com/payment/request',
+            
+            // رابط الوكيل (لحل مشكلة CORS) – نشغله دائمًا للاختبار
             proxyUrl: 'https://cors-anywhere.herokuapp.com/',
-            returnUrl: 'https://tal-alsindian.github.io/payment-success/', // قم بتغيير هذا إلى رابط موقعك الفعلي
-            callbackUrl: 'https://talalsindian.com/api/payment-callback', // اختياري
-            authType: 'bearer', // جرب 'bearer', 'direct', 'basic'
-            enableSignature: false,
-            signatureField: 'signature',
+            
+            // روابط العودة (استبدلها بروابط موقعك الفعلية)
+            returnUrl: 'https://tal-alsindian.github.io/payment-success.html', // ⚠️ عدّل هذا
+            callbackUrl: 'https://tal-alsindian.github.io/api/callback', // اختياري
+
+            // طريقة التوثيق
+            authType: 'bearer', // جرب 'direct' إذا لم ينجح
+            
+            // إجبار استخدام الوكيل لكل الطلبات (للاختبار فقط)
+            forceProxy: true, // ✅ فعّله الآن، وسيتم تعطيله للإنتاج
         };
+        // =================================================
 
         // دوال تحميل البيانات
         function loadCachedData() {
@@ -2150,10 +2168,6 @@
                     }
                 };
 
-                if (MEPS_CONFIG.enableSignature) {
-                    paymentData[MEPS_CONFIG.signatureField] = generateSignature(paymentData, MEPS_CONFIG.serverKey);
-                }
-
                 let headers = { 'Content-Type': 'application/json' };
                 if (MEPS_CONFIG.authType === 'bearer') {
                     headers['Authorization'] = `Bearer ${MEPS_CONFIG.serverKey}`;
@@ -2165,8 +2179,7 @@
                 }
 
                 let apiUrl = MEPS_CONFIG.apiUrl;
-                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                if (MEPS_CONFIG.proxyUrl && isLocal) {
+                if (MEPS_CONFIG.forceProxy && MEPS_CONFIG.proxyUrl) {
                     apiUrl = MEPS_CONFIG.proxyUrl + MEPS_CONFIG.apiUrl;
                 }
 
@@ -2203,11 +2216,6 @@
                 showSimulationModal();
                 showNotification('تعذر الاتصال ببوابة الدفع. يمكنك استخدام وضع الاختبار.', 'error');
             }
-        }
-
-        function generateSignature(data, secret) {
-            console.warn('تحذير: استخدم generateSignature حقيقية إذا كانت البوابة تطلب توقيعاً');
-            return 'dummy_signature';
         }
 
         async function completeOrderAfterPayment(order, tranRef) {
