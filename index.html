@@ -439,12 +439,95 @@
     </div>
 </div>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
 <script>
 (function preventZoom(){
     document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:false});
     document.addEventListener('keydown',e=>{if(e.ctrlKey&&['+','-','=','_','0'].includes(e.key))e.preventDefault()});
     document.addEventListener('gesturestart',e=>e.preventDefault());
 })();
+
+// ======== FIREBASE CONFIG ========
+// استخدام Firebase Realtime Database للتواصل بين الأجهزة
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyD-placeholder-replace-with-real-key",
+    authDomain: "tel-alsindian.firebaseapp.com",
+    databaseURL: "https://tel-alsindian-default-rtdb.firebaseio.com",
+    projectId: "tel-alsindian",
+    storageBucket: "tel-alsindian.appspot.com",
+    messagingSenderId: "000000000000",
+    appId: "1:000000000000:web:000000000000000000000000"
+};
+
+let firebaseDB = null;
+let firebaseApp = null;
+
+function initFirebase() {
+    try {
+        if (typeof firebase !== 'undefined') {
+            if (!firebase.apps.length) {
+                firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+            } else {
+                firebaseApp = firebase.apps[0];
+            }
+            firebaseDB = firebase.database();
+            console.log('[Firebase] تم الاتصال بنجاح');
+        }
+    } catch(e) {
+        console.warn('[Firebase] فشل الاتصال، سيتم استخدام BroadcastChannel فقط:', e);
+        firebaseDB = null;
+    }
+}
+
+// ======== إرسال حدث التعديل عبر Firebase ========
+function publishOrderModified(payload) {
+    // 1. BroadcastChannel للتبويبات على نفس الجهاز
+    try {
+        if (window.BroadcastChannel) {
+            const bc = new BroadcastChannel('table_status_channel');
+            bc.postMessage(payload);
+            bc.close();
+        }
+    } catch(e) {}
+
+    // 2. Firebase للأجهزة المختلفة
+    if (firebaseDB) {
+        try {
+            const ref = firebaseDB.ref('events/order_modified');
+            ref.set({
+                ...payload,
+                _timestamp: Date.now()
+            }).catch(err => console.warn('[Firebase] فشل نشر التعديل:', err));
+        } catch(e) {
+            console.warn('[Firebase] خطأ في النشر:', e);
+        }
+    }
+}
+
+// ======== إرسال تحديث حالة الطاولة عبر Firebase ========
+function publishTableStatus(statuses) {
+    // 1. BroadcastChannel
+    try {
+        if (window.BroadcastChannel) {
+            const bc = new BroadcastChannel('table_status_channel');
+            bc.postMessage({ type: 'TABLE_STATUS_UPDATE', statuses });
+            bc.close();
+        }
+    } catch(e) {}
+
+    // 2. Firebase
+    if (firebaseDB) {
+        try {
+            firebaseDB.ref('table_statuses').set({
+                statuses,
+                _timestamp: Date.now()
+            }).catch(err => console.warn('[Firebase] فشل نشر حالات الطاولات:', err));
+        } catch(e) {}
+    }
+}
 
 // ======== CONSTANTS ========
 const OLD_API_URL='https://script.google.com/macros/s/AKfycbxiJYSHWq71UyCJY3enMr5u4shfsEYZh9ddBr5qSlZHcVSAz-oXMnZwCoR79PYx4gOQHw/exec';
@@ -469,11 +552,7 @@ function loadTableOrders(){try{AppState.tableOrders=JSON.parse(localStorage.getI
 function saveTableStatuses(){
     try{
         localStorage.setItem(TABLE_STATUS_KEY,JSON.stringify(AppState.tableStatuses));
-        if(window.BroadcastChannel){
-            const bc=new BroadcastChannel('table_status_channel');
-            bc.postMessage({type:'TABLE_STATUS_UPDATE',statuses:AppState.tableStatuses});
-            bc.close();
-        }
+        publishTableStatus(AppState.tableStatuses);
     }catch(e){}
 }
 function saveTableOrders(){try{localStorage.setItem(TABLE_ORDERS_KEY,JSON.stringify(AppState.tableOrders))}catch(e){}}
@@ -780,7 +859,19 @@ async function submitOrder(event){
                 lastModified:new Date().toISOString()
             };
             saveTableOrders();
-            broadcastOrderModified(tableNumber,oid,[...AppState.cart],total,notes);
+
+            // ======== الحل الجذري: نشر التعديل عبر Firebase + BroadcastChannel ========
+            const modPayload = {
+                type: 'ORDER_MODIFIED',
+                tableNumber: String(tableNumber),
+                orderId: oid || null,
+                items: [...AppState.cart],
+                total,
+                notes,
+                modifiedAt: new Date().toISOString()
+            };
+            publishOrderModified(modPayload);
+
             showNotification('✅ تم تحديث الطلب بنجاح!','success');
         }else{
             const cartSnapshot=[...AppState.cart];
@@ -809,23 +900,6 @@ async function submitOrder(event){
     finally{btn.textContent=orig;btn.disabled=false}
 }
 
-// ======== BROADCAST: إشعار cash.html بالتعديل ========
-function broadcastOrderModified(tableNumber,orderId,items,total,notes){
-    if(!window.BroadcastChannel)return;
-    const payload={
-        type:'ORDER_MODIFIED',
-        tableNumber: String(tableNumber),
-        orderId: orderId||null,
-        items: items,
-        total: total,
-        notes: notes,
-        modifiedAt: new Date().toISOString()
-    };
-    const bc=new BroadcastChannel('table_status_channel');
-    bc.postMessage(payload);
-    bc.close();
-}
-
 // ======== IMAGE ========
 function openImageModal(src){document.getElementById('modalImage').src=src;document.getElementById('imageModal').classList.add('active');document.body.style.overflow='hidden'}
 function closeImageModal(e){if(e&&e.target!==document.getElementById('imageModal')&&e.target.className!=='close-image-modal')return;document.getElementById('imageModal').classList.remove('active');document.body.style.overflow=''}
@@ -842,17 +916,11 @@ function showNotification(msg,type='info'){
 function handleTableTransfer(fromTable, toTable) {
     const from = String(fromTable);
     const to   = String(toTable);
-
-    // تحديث حالة الطاولتين في localStorage وفي AppState
     AppState.tableStatuses[from] = 'free';
     AppState.tableStatuses[to]   = 'occupied';
     localStorage.setItem(TABLE_STATUS_KEY, JSON.stringify(AppState.tableStatuses));
-
-    // تحديث الخلايا المرئية إذا كانت شاشة الطاولات ظاهرة
     renderTableCell(from);
     renderTableCell(to);
-
-    // إذا كان المستخدم الحالي على الطاولة المنقولة → تحديث العرض
     if (AppState.selectedTable && String(AppState.selectedTable) === from) {
         AppState.selectedTable = to;
         const disp = document.getElementById('selectedTableDisplay');
@@ -860,23 +928,17 @@ function handleTableTransfer(fromTable, toTable) {
         const ckNum = document.getElementById('checkoutTableNumber');
         if (ckNum) ckNum.textContent = to;
     }
-
-    // نقل بيانات الطلب المحلي من الطاولة القديمة للجديدة
     if (AppState.tableOrders[from]) {
         AppState.tableOrders[to] = { ...AppState.tableOrders[from] };
         delete AppState.tableOrders[from];
         saveTableOrders();
     }
-
-    // إظهار إشعار بصري
     showTransferToast(from, to);
 }
 
 function showTransferToast(from, to) {
-    // إزالة توست سابق إن وُجد
     const old = document.getElementById('transfer-toast-el');
     if (old) old.remove();
-
     const toast = document.createElement('div');
     toast.id = 'transfer-toast-el';
     toast.className = 'transfer-toast';
@@ -885,35 +947,50 @@ function showTransferToast(from, to) {
     setTimeout(() => toast.remove(), 4500);
 }
 
-// ======== BROADCAST RECEIVER ========
+// ======== BROADCAST RECEIVER (نفس الجهاز) ========
 if(window.BroadcastChannel){
     const bc=new BroadcastChannel('table_status_channel');
     bc.onmessage=(e)=>{
         if(!e.data) return;
-
-        // تحديث حالات الطاولات العام
         if(e.data.type==='TABLE_STATUS_UPDATE'){
             AppState.tableStatuses=e.data.statuses;
             if(document.getElementById('table-selection-screen').classList.contains('active'))
                 renderTablesGrid();
         }
-
-        // إكمال الطلب
         if(e.data.type==='ORDER_COMPLETED'){
             const t=e.data.tableNumber;
             if(t&&AppState.tableOrders[t]){delete AppState.tableOrders[t];saveTableOrders();}
         }
-
-        // ======== نقل الطاولة القادم من cash.html ========
         if(e.data.type==='TABLE_TRANSFER'){
             handleTableTransfer(e.data.fromTable, e.data.toTable);
         }
     };
 }
 
+// ======== Firebase Receiver: استقبال تحديثات حالة الطاولات من أجهزة أخرى ========
+function listenToFirebaseTableStatus() {
+    if (!firebaseDB) return;
+    try {
+        firebaseDB.ref('table_statuses').on('value', snapshot => {
+            const data = snapshot.val();
+            if (data && data.statuses) {
+                AppState.tableStatuses = data.statuses;
+                try { localStorage.setItem(TABLE_STATUS_KEY, JSON.stringify(data.statuses)); } catch(e) {}
+                if (document.getElementById('table-selection-screen').classList.contains('active')) {
+                    renderTablesGrid();
+                }
+            }
+        });
+    } catch(e) {
+        console.warn('[Firebase] فشل الاستماع لحالات الطاولات:', e);
+    }
+}
+
 // ======== INIT ========
 document.addEventListener('DOMContentLoaded',()=>{
     createLeaves();loadTableStatuses();loadTableOrders();
+    initFirebase();
+    listenToFirebaseTableStatus();
     setTimeout(()=>{document.getElementById('intro-screen').classList.add('hidden');setTimeout(()=>showTableSelectionScreen(),600)},4000);
 });
 document.getElementById('cartFab').addEventListener('click',showCart);
