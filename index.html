@@ -75,7 +75,7 @@
         .squirrel-leg-front { position:absolute; width:9px; height:11px; background:#b58b5a; border-radius:30% 30% 20% 20%; bottom:2px; right:9px; transform:rotate(5deg); border:1px solid #7b572e; animation:legMove 0.15s infinite alternate; }
         .squirrel-leg-back { position:absolute; width:10px; height:12px; background:#b58b5a; border-radius:30% 30% 20% 20%; bottom:2px; left:20px; transform:rotate(-5deg); border:1px solid #7b572e; animation:legMove 0.15s infinite alternate-reverse; }
         .squirrel-nut { position:absolute; width:8px; height:9px; background:#b58b5a; border-radius:40% 40% 30% 30%; bottom:7px; right:2px; box-shadow:0 3px 5px rgba(0,0,0,0.4); border:1px solid #7b572e; z-index:5; }
-        .squirrel-nut::before { content:''; position:absolute; width:3px; height:4px; background:#7b572e; top:1px; left:2px; border-radius:50%; }
+        .squirrel-nut::before { content:''; position:absolute; top:-5px; left:2px; width:3px; height:4px; background:#7b572e; border-radius:50%; }
         @keyframes runToHome { 0%{left:0;transform:translateY(-50%) scale(1)} 15%{transform:translateY(-58%) scale(1.03)} 30%{transform:translateY(-42%) scale(0.97)} 45%{transform:translateY(-55%) scale(1.02)} 60%{transform:translateY(-45%) scale(0.98)} 75%{transform:translateY(-53%) scale(1.02)} 90%{transform:translateY(-47%) scale(0.98)} 100%{left:calc(100% - 65px);transform:translateY(-50%) scale(1)} }
         @keyframes tailWag { 0%{transform:rotate(15deg) scale(1)} 100%{transform:rotate(28deg) scale(1.12)} }
         @keyframes legMove { 0%{transform:rotate(0deg) translateY(0)} 100%{transform:rotate(10deg) translateY(-4px)} }
@@ -447,211 +447,254 @@
 })();
 
 // ======== CONSTANTS ========
-const OLD_API_URL='https://script.google.com/macros/s/AKfycbxiJYSHWq71UyCJY3enMr5u4shfsEYZh9ddBr5qSlZHcVSAz-oXMnZwCoR79PYx4gOQHw/exec';
-const NEW_API_URL='https://script.google.com/macros/s/AKfycbyf1LnxXlGpllpyNeO9Gez1ah-DUSaVfTk3KhPDV8lDtN_Zga1GMZDaM387o0XWhIIW/exec';
-const TABLE_STATUS_KEY='tel_sindian_table_status';
-const TABLE_ORDERS_KEY='tel_sindian_table_orders';
-const TABLE_COUNT=40;
-const SIMPLE_FLAVOR_PRODUCTS=['لاتيه','سبانيش لاتيه','وايت هوت شوكليت','ايس لاتيه','ايس سبانيش لاتيه'];
+const OLD_API_URL  = 'https://script.google.com/macros/s/AKfycbxiJYSHWq71UyCJY3enMr5u4shfsEYZh9ddBr5qSlZHcVSAz-oXMnZwCoR79PYx4gOQHw/exec';
+const NEW_API_URL  = 'https://script.google.com/macros/s/AKfycbyf1LnxXlGpllpyNeO9Gez1ah-DUSaVfTk3KhPDV8lDtN_Zga1GMZDaM387o0XWhIIW/exec';
+const TABLE_COUNT  = 40;
+const SIMPLE_FLAVOR_PRODUCTS = ['لاتيه','سبانيش لاتيه','وايت هوت شوكليت','ايس لاتيه','ايس سبانيش لاتيه'];
 
-// ======== STATE ========
-let categories=[],products=[];
-const AppState={
-    cart:[],selectedTable:null,tableStatuses:{},
-    tableOrders:{},
-    isEditMode:false,
-    selectedProductForFlavor:null
+// ======== STATE (بدون localStorage) ========
+let categories = [], products = [];
+const AppState = {
+    cart: [],
+    selectedTable: null,
+    tableStatuses: {},          // يُملأ من Sheets فقط
+    isEditMode: false,
+    selectedProductForFlavor: null
 };
 
-// ======== TABLE STATUS ========
-function loadTableStatuses(){try{AppState.tableStatuses=JSON.parse(localStorage.getItem(TABLE_STATUS_KEY)||'{}')}catch(e){AppState.tableStatuses={}}}
-function loadTableOrders(){try{AppState.tableOrders=JSON.parse(localStorage.getItem(TABLE_ORDERS_KEY)||'{}')}catch(e){AppState.tableOrders={}}}
-function saveTableStatuses(){
-    try{
-        localStorage.setItem(TABLE_STATUS_KEY,JSON.stringify(AppState.tableStatuses));
-        if(window.BroadcastChannel){
-            const bc=new BroadcastChannel('table_status_channel');
-            bc.postMessage({type:'TABLE_STATUS_UPDATE',statuses:AppState.tableStatuses});
-            bc.close();
+// ======== TABLE STATUS — Sheets Only ========
+
+/**
+ * جلب حالات الطاولات من Google Sheets
+ */
+async function fetchTableStatuses() {
+    try {
+        const ctrl = new AbortController();
+        const tid  = setTimeout(() => ctrl.abort(), 6000);
+        const r    = await fetch(`${NEW_API_URL}?action=getTableStatuses&_=${Date.now()}`, { signal: ctrl.signal });
+        clearTimeout(tid);
+        const d = await r.json();
+        if (d.success && d.statuses) {
+            AppState.tableStatuses = d.statuses;
         }
-    }catch(e){}
+    } catch(e) {
+        console.warn('fetchTableStatuses failed:', e);
+    }
 }
-function saveTableOrders(){try{localStorage.setItem(TABLE_ORDERS_KEY,JSON.stringify(AppState.tableOrders))}catch(e){}}
-function setTableStatus(n,s){AppState.tableStatuses[n]=s;saveTableStatuses();renderTableCell(n)}
-function getTableStatus(n){return AppState.tableStatuses[n]||'free'}
+
+/**
+ * تحديث حالة طاولة واحدة على Google Sheets
+ */
+async function pushTableStatus(tableNum, status) {
+    try {
+        const fd = new URLSearchParams();
+        fd.append('action', 'setTableStatus');
+        fd.append('tableNumber', tableNum);
+        fd.append('status', status);
+        await fetch(NEW_API_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: fd
+        });
+        // تحديث الذاكرة المحلية للجلسة الحالية فقط
+        AppState.tableStatuses[String(tableNum)] = status;
+    } catch(e) {
+        console.warn('pushTableStatus failed:', e);
+    }
+}
+
+function getTableStatus(n) {
+    return AppState.tableStatuses[String(n)] || 'free';
+}
 
 // ======== LEAVES ========
-function createLeaves(){
-    const c=document.getElementById('fallingLeaves');if(!c)return;
-    const s=['🌿','🍂','🍃'];
-    for(let i=0;i<12;i++){
-        const l=document.createElement('div');l.className='leaf';
-        l.textContent=s[Math.floor(Math.random()*s.length)];
-        l.style.fontSize=(Math.random()*1.5+1.2)+'rem';
-        l.style.left=Math.random()*100+'%';
-        l.style.animationDuration=(Math.random()*10+12)+'s';
-        l.style.animationDelay=Math.random()*-20+'s';
-        l.style.color=`rgba(255,255,255,${Math.random()*0.5+0.5})`;
+function createLeaves() {
+    const c = document.getElementById('fallingLeaves'); if (!c) return;
+    const s = ['🌿','🍂','🍃'];
+    for (let i = 0; i < 12; i++) {
+        const l = document.createElement('div'); l.className = 'leaf';
+        l.textContent = s[Math.floor(Math.random() * s.length)];
+        l.style.fontSize = (Math.random() * 1.5 + 1.2) + 'rem';
+        l.style.left = Math.random() * 100 + '%';
+        l.style.animationDuration = (Math.random() * 10 + 12) + 's';
+        l.style.animationDelay = Math.random() * -20 + 's';
+        l.style.color = `rgba(255,255,255,${Math.random() * 0.5 + 0.5})`;
         c.appendChild(l);
     }
 }
 
 // ======== TABLES SCREEN ========
-let tablePollingTimer=null;
-function showTableSelectionScreen(){
+let tablePollingTimer = null;
+
+async function showTableSelectionScreen() {
     document.getElementById('table-selection-screen').classList.add('active');
     document.getElementById('menu-screen').classList.remove('active');
-    document.getElementById('cartFab').style.display='none';
-    loadTableStatuses();loadTableOrders();renderTablesGrid();startTableStatusPolling();
+    document.getElementById('cartFab').style.display = 'none';
+    // جلب حالات الطاولات من السيرفر أولاً
+    await fetchTableStatuses();
+    renderTablesGrid();
+    startTableStatusPolling();
 }
-function startTableStatusPolling(){
-    if(tablePollingTimer)clearInterval(tablePollingTimer);
-    tablePollingTimer=setInterval(()=>{loadTableStatuses();renderTablesGrid()},5000);
+
+function startTableStatusPolling() {
+    if (tablePollingTimer) clearInterval(tablePollingTimer);
+    tablePollingTimer = setInterval(async () => {
+        await fetchTableStatuses();
+        renderTablesGrid();
+    }, 6000);
 }
-function stopTableStatusPolling(){if(tablePollingTimer){clearInterval(tablePollingTimer);tablePollingTimer=null}}
-function renderTablesGrid(){
-    const g=document.getElementById('tablesGrid');if(!g)return;
-    g.innerHTML='';for(let i=1;i<=TABLE_COUNT;i++)g.appendChild(createTableCell(i));
+
+function stopTableStatusPolling() {
+    if (tablePollingTimer) { clearInterval(tablePollingTimer); tablePollingTimer = null; }
 }
-function createTableCell(num){
-    const s=getTableStatus(num);
-    const c=document.createElement('div');
-    c.className=`table-cell ${s}`;c.id=`table-cell-${num}`;c.dataset.table=num;
-    c.innerHTML=`<i class="fas fa-chair table-icon"></i><span class="table-num">${num}</span><span class="table-label">طاولة</span>`;
-    c.addEventListener('click',()=>handleTableClick(num));
+
+function renderTablesGrid() {
+    const g = document.getElementById('tablesGrid'); if (!g) return;
+    g.innerHTML = '';
+    for (let i = 1; i <= TABLE_COUNT; i++) g.appendChild(createTableCell(i));
+}
+
+function createTableCell(num) {
+    const s = getTableStatus(num);
+    const c = document.createElement('div');
+    c.className = `table-cell ${s}`; c.id = `table-cell-${num}`; c.dataset.table = num;
+    c.innerHTML = `<i class="fas fa-chair table-icon"></i><span class="table-num">${num}</span><span class="table-label">طاولة</span>`;
+    c.addEventListener('click', () => handleTableClick(num));
     return c;
 }
-function renderTableCell(num){
-    const e=document.getElementById(`table-cell-${num}`);
-    if(e){
-        e.className=`table-cell ${getTableStatus(num)}`;
-    }
+
+function renderTableCell(num) {
+    const e = document.getElementById(`table-cell-${num}`);
+    if (e) e.className = `table-cell ${getTableStatus(num)}`;
 }
 
 // ======== TABLE CLICK LOGIC ========
-function handleTableClick(num){
-    const s=getTableStatus(num);
-    if(s==='occupied'||s==='billed') showOccupiedModal(num);
+function handleTableClick(num) {
+    const s = getTableStatus(num);
+    if (s === 'occupied' || s === 'billed') showOccupiedModal(num);
     else enterTableAsNew(num);
 }
-function enterTableAsNew(num){
-    AppState.selectedTable=num;AppState.isEditMode=false;AppState.cart=[];
-    stopTableStatusPolling();updateMenuUIMode();showMenuScreen();
+
+function enterTableAsNew(num) {
+    AppState.selectedTable = num; AppState.isEditMode = false; AppState.cart = [];
+    stopTableStatusPolling(); updateMenuUIMode(); showMenuScreen();
 }
-function enterTableAsEdit(num){
-    AppState.selectedTable=num;AppState.isEditMode=true;
-    loadTableOrders();
-    const ex=AppState.tableOrders[num];
-    AppState.cart=(ex&&ex.items&&ex.items.length>0)?ex.items.map(i=>({...i})):[];
-    stopTableStatusPolling();updateMenuUIMode();showMenuScreen();
+
+function enterTableAsEdit(num) {
+    AppState.selectedTable = num; AppState.isEditMode = true; AppState.cart = [];
+    stopTableStatusPolling(); updateMenuUIMode(); showMenuScreen();
 }
 
 // ======== OCCUPIED MODAL ========
-function showOccupiedModal(num){
-    document.getElementById('occupiedTableBadge').textContent=`🪑 طاولة رقم ${num}`;
+function showOccupiedModal(num) {
+    document.getElementById('occupiedTableBadge').textContent = `🪑 طاولة رقم ${num}`;
     document.getElementById('occupiedModal').classList.add('active');
-    document.getElementById('occBtnAddOrder').onclick=()=>{closeOccupiedModal();enterTableAsEdit(num)};
-    document.getElementById('occBtnCancel').onclick=closeOccupiedModal;
+    document.getElementById('occBtnAddOrder').onclick = () => { closeOccupiedModal(); enterTableAsEdit(num); };
+    document.getElementById('occBtnCancel').onclick = closeOccupiedModal;
 }
-function closeOccupiedModal(){document.getElementById('occupiedModal').classList.remove('active')}
+function closeOccupiedModal() { document.getElementById('occupiedModal').classList.remove('active'); }
 
 // ======== UI MODE ========
-function updateMenuUIMode(){
-    const bar=document.getElementById('selectedTableBar');
-    const badge=document.getElementById('editModeBadge');
-    const banner=document.getElementById('editModeBanner');
-    const cTitle=document.getElementById('cartModalTitle');
-    const ckTitle=document.getElementById('checkoutModalTitle');
-    const tCard=document.getElementById('tableConfirmCard');
-    const tLabel=document.getElementById('tableConfirmLabel');
-    const sBtn=document.getElementById('submitOrderBtn');
-    if(AppState.isEditMode){
-        bar.className='selected-table-bar mode-edit';
-        badge.classList.add('visible');banner.classList.add('visible');
-        cTitle.textContent='✏️ تعديل طلب الطاولة';
-        ckTitle.textContent='✏️ تأكيد التعديل';
-        tCard.classList.add('edit-mode');tLabel.textContent='تعديل طلب الطاولة';
-        sBtn.className='submit-order edit-mode';sBtn.textContent='تأكيد التعديل';
-    }else{
-        bar.className='selected-table-bar mode-new';
-        badge.classList.remove('visible');banner.classList.remove('visible');
-        cTitle.textContent='🛒 سلة المشتريات';
-        ckTitle.textContent='📋 تفاصيل الطلب';
-        tCard.classList.remove('edit-mode');tLabel.textContent='الطلب للطاولة';
-        sBtn.className='submit-order';sBtn.textContent='تأكيد الطلب';
+function updateMenuUIMode() {
+    const bar    = document.getElementById('selectedTableBar');
+    const badge  = document.getElementById('editModeBadge');
+    const banner = document.getElementById('editModeBanner');
+    const cTitle = document.getElementById('cartModalTitle');
+    const ckTitle= document.getElementById('checkoutModalTitle');
+    const tCard  = document.getElementById('tableConfirmCard');
+    const tLabel = document.getElementById('tableConfirmLabel');
+    const sBtn   = document.getElementById('submitOrderBtn');
+    if (AppState.isEditMode) {
+        bar.className = 'selected-table-bar mode-edit';
+        badge.classList.add('visible'); banner.classList.add('visible');
+        cTitle.textContent = '✏️ تعديل طلب الطاولة';
+        ckTitle.textContent = '✏️ تأكيد التعديل';
+        tCard.classList.add('edit-mode'); tLabel.textContent = 'تعديل طلب الطاولة';
+        sBtn.className = 'submit-order edit-mode'; sBtn.textContent = 'تأكيد التعديل';
+    } else {
+        bar.className = 'selected-table-bar mode-new';
+        badge.classList.remove('visible'); banner.classList.remove('visible');
+        cTitle.textContent = '🛒 سلة المشتريات';
+        ckTitle.textContent = '📋 تفاصيل الطلب';
+        tCard.classList.remove('edit-mode'); tLabel.textContent = 'الطلب للطاولة';
+        sBtn.className = 'submit-order'; sBtn.textContent = 'تأكيد الطلب';
     }
 }
 
 // ======== MENU SCREEN ========
-function showMenuScreen(){
+function showMenuScreen() {
     document.getElementById('table-selection-screen').classList.remove('active');
     document.getElementById('menu-screen').classList.add('active');
-    document.getElementById('cartFab').style.display='flex';
-    document.getElementById('selectedTableDisplay').textContent=AppState.selectedTable;
-    document.getElementById('checkoutTableNumber').textContent=AppState.selectedTable;
+    document.getElementById('cartFab').style.display = 'flex';
+    document.getElementById('selectedTableDisplay').textContent = AppState.selectedTable;
+    document.getElementById('checkoutTableNumber').textContent  = AppState.selectedTable;
     updateCartBadge();
-    if(categories.length===0)loadMenuData();
-    else{renderCategories();if(categories.length>0)renderProducts(categories[0].id)}
+    if (categories.length === 0) loadMenuData();
+    else { renderCategories(); if (categories.length > 0) renderProducts(categories[0].id); }
 }
-function goBackToTables(){
-    AppState.cart=[];AppState.selectedTable=null;AppState.isEditMode=false;
-    updateCartBadge();document.getElementById('selectedTableDisplay').textContent='-';
-    showTableSelectionScreen();
+
+async function goBackToTables() {
+    AppState.cart = []; AppState.selectedTable = null; AppState.isEditMode = false;
+    updateCartBadge();
+    document.getElementById('selectedTableDisplay').textContent = '-';
+    await showTableSelectionScreen();
 }
 
 // ======== MENU DATA ========
-function loadCachedData(){
-    try{
-        const c=localStorage.getItem('telalsindian_menu');
-        if(c){const d=JSON.parse(c);if(d.categories&&d.products){categories=d.categories;products=d.products;categories.sort((a,b)=>(a.order||0)-(b.order||0));renderCategories();if(categories.length>0)renderProducts(categories[0].id);return true}}
-    }catch(e){}return false;
-}
-async function loadMenuData(){
-    if(!loadCachedData())document.getElementById('menuContainer').innerHTML='<div class="loading-spinner"></div>';
-    const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),8000);
-    try{
-        const r=await fetch(`${NEW_API_URL}?action=getMenuData`,{signal:ctrl.signal});
-        clearTimeout(tid);const d=await r.json();
-        if(d.success){
-            categories=d.categories||[];products=d.products||[];
-            categories.sort((a,b)=>(a.order||0)-(b.order||0));
-            try{localStorage.setItem('telalsindian_menu',JSON.stringify({categories,products}))}catch(e){}
+async function loadMenuData() {
+    document.getElementById('menuContainer').innerHTML = '<div class="loading-spinner"></div>';
+    const ctrl = new AbortController(); const tid = setTimeout(() => ctrl.abort(), 8000);
+    try {
+        const r = await fetch(`${NEW_API_URL}?action=getMenuData`, { signal: ctrl.signal });
+        clearTimeout(tid); const d = await r.json();
+        if (d.success) {
+            categories = d.categories || []; products = d.products || [];
+            categories.sort((a,b) => (a.order||0) - (b.order||0));
             renderCategories();
-            if(categories.length>0)renderProducts(categories[0].id);
-            else document.getElementById('menuContainer').innerHTML='<div style="text-align:center;color:white">لا توجد أصناف متاحة</div>';
+            if (categories.length > 0) renderProducts(categories[0].id);
+            else document.getElementById('menuContainer').innerHTML = '<div style="text-align:center;color:white">لا توجد أصناف متاحة</div>';
         }
-    }catch(e){clearTimeout(tid);if(!categories.length)document.getElementById('menuContainer').innerHTML='<div style="text-align:center;color:white">لا يمكن تحميل القائمة حالياً.</div>'}
+    } catch(e) {
+        clearTimeout(tid);
+        if (!categories.length) document.getElementById('menuContainer').innerHTML = '<div style="text-align:center;color:white">لا يمكن تحميل القائمة حالياً.</div>';
+    }
 }
-function renderCategories(){
-    const n=document.getElementById('navTabs');if(!n)return;
-    n.innerHTML=categories.map(c=>`<div class="nav-tab ${c.id===categories[0]?.id?'active':''}" onclick="switchCategory('${c.id}',this)"><i class="fas ${getIconForCategory(c.name)}"></i><span>${c.name}</span></div>`).join('');
-}
-function getIconForCategory(name){
-    const n=name.toLowerCase();
-    if(n.includes('ساندويش')||n.includes('ساندويتش'))return'fa-sandwich';
-    if(n.includes('طبق')||n.includes('رئيسية'))return'fa-drumstick-bite';
-    if(n.includes('صينية')||n.includes('صواني'))return'fa-utensils';
-    if(n.includes('مقبلات')||n.includes('سلطة'))return'fa-leaf';
-    return'fa-utensils';
-}
-function switchCategory(id,el){document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderProducts(id)}
-function isMojitoProduct(pid){const p=products.find(x=>x.id===pid);if(!p)return false;return categories.find(c=>c.id===p.categoryId)?.name?.includes('موهيتو')||false}
-function hasSimpleFlavor(pid){const p=products.find(x=>x.id===pid);if(!p)return false;return SIMPLE_FLAVOR_PRODUCTS.includes(p.name.trim())}
 
-function renderProducts(catId){
-    const cont=document.getElementById('menuContainer');
-    const cat=categories.find(c=>c.id===catId);
-    const fps=products.filter(p=>p.categoryId===catId).sort((a,b)=>(a.order||0)-(b.order||0));
-    if(!fps.length){cont.innerHTML=`<div class="menu-section active"><h2 class="section-title">${cat?.name||''}</h2><p style="text-align:center;color:white">لا توجد منتجات</p></div>`;return}
-    const isMoh=cat?.name?.includes('موهيتو')||false;
-    cont.innerHTML=`<div class="menu-section active"><h2 class="section-title">${cat?.name||''}</h2><div class="products-grid">${fps.map(p=>{
-        const ss=hasSimpleFlavor(p.id),sm=isMoh;
-        const inQ=AppState.cart.find(i=>i.id===p.id)?.quantity||0;
-        const inCartBadge=inQ>0?`<span class="in-cart-tag">في السلة ×${inQ}</span>`:'';
-        return`<div class="product-card" id="pcard-${p.id}">
+function renderCategories() {
+    const n = document.getElementById('navTabs'); if (!n) return;
+    n.innerHTML = categories.map(c =>
+        `<div class="nav-tab ${c.id === categories[0]?.id ? 'active' : ''}" onclick="switchCategory('${c.id}',this)"><i class="fas ${getIconForCategory(c.name)}"></i><span>${c.name}</span></div>`
+    ).join('');
+}
+
+function getIconForCategory(name) {
+    const n = name.toLowerCase();
+    if (n.includes('ساندويش')||n.includes('ساندويتش')) return 'fa-sandwich';
+    if (n.includes('طبق')||n.includes('رئيسية')) return 'fa-drumstick-bite';
+    if (n.includes('صينية')||n.includes('صواني')) return 'fa-utensils';
+    if (n.includes('مقبلات')||n.includes('سلطة')) return 'fa-leaf';
+    return 'fa-utensils';
+}
+
+function switchCategory(id, el) { document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); renderProducts(id); }
+function isMojitoProduct(pid) { const p = products.find(x => x.id === pid); if (!p) return false; return categories.find(c => c.id === p.categoryId)?.name?.includes('موهيتو') || false; }
+function hasSimpleFlavor(pid) { const p = products.find(x => x.id === pid); if (!p) return false; return SIMPLE_FLAVOR_PRODUCTS.includes(p.name.trim()); }
+
+function renderProducts(catId) {
+    const cont = document.getElementById('menuContainer');
+    const cat  = categories.find(c => c.id === catId);
+    const fps  = products.filter(p => p.categoryId === catId).sort((a,b) => (a.order||0) - (b.order||0));
+    if (!fps.length) { cont.innerHTML = `<div class="menu-section active"><h2 class="section-title">${cat?.name||''}</h2><p style="text-align:center;color:white">لا توجد منتجات</p></div>`; return; }
+    const isMoh = cat?.name?.includes('موهيتو') || false;
+    cont.innerHTML = `<div class="menu-section active"><h2 class="section-title">${cat?.name||''}</h2><div class="products-grid">${fps.map(p => {
+        const ss = hasSimpleFlavor(p.id), sm = isMoh;
+        const inQ = AppState.cart.find(i => i.id === p.id)?.quantity || 0;
+        const inCartBadge = inQ > 0 ? `<span class="in-cart-tag">في السلة ×${inQ}</span>` : '';
+        return `<div class="product-card" id="pcard-${p.id}">
             <img src="${p.image}" class="product-image" onclick="openImageModal('${p.image}')" onerror="this.src='https://via.placeholder.com/512x512/2D5A27/FFFFFF?text=تل+السنديان'" loading="lazy">
             <div class="card-content">
-                <h3 class="product-title" id="ptitle-${p.id}">${p.name}${p.isNew?'<span class="new-tag">جديد</span>':''}${inCartBadge}</h3>
+                <h3 class="product-title" id="ptitle-${p.id}">${p.name}${p.isNew ? '<span class="new-tag">جديد</span>' : ''}${inCartBadge}</h3>
                 <p class="product-description">${p.description}</p>
                 <div class="product-price">${Number(p.price).toFixed(2)} د.أ</div>
                 <div class="quantity-controls">
@@ -660,70 +703,85 @@ function renderProducts(catId){
                     <button class="quantity-btn" onclick="updateQuantity('${p.id}',1)">+</button>
                 </div>
                 <button class="add-to-cart-btn" onclick="addToCart('${p.id}')"><i class="fas fa-cart-plus"></i> أضف إلى السلة</button>
-                ${ss?`<button class="flavor-simple-btn" id="flavor-simple-${p.id}" data-product-id="${p.id}" onclick="addSimpleFlavor('${p.id}')"><i class="fas fa-leaf"></i> نكهة +0.50 د.أ</button>`:''}
-                ${sm?`<button class="flavor-mojito-btn" id="flavor-mojito-${p.id}" data-product-id="${p.id}" onclick="openFlavorModal('${p.id}')"><i class="fas fa-leaf"></i> نكهة</button>`:''}
+                ${ss ? `<button class="flavor-simple-btn" id="flavor-simple-${p.id}" data-product-id="${p.id}" onclick="addSimpleFlavor('${p.id}')"><i class="fas fa-leaf"></i> نكهة +0.50 د.أ</button>` : ''}
+                ${sm ? `<button class="flavor-mojito-btn" id="flavor-mojito-${p.id}" data-product-id="${p.id}" onclick="openFlavorModal('${p.id}')"><i class="fas fa-leaf"></i> نكهة</button>` : ''}
             </div>
-        </div>`}).join('')}</div></div>`;
+        </div>`;
+    }).join('')}</div></div>`;
     updateFlavorButtons();
 }
 
 // ======== CART ========
-function updateQuantity(pid,ch){
-    const d=document.getElementById(`qty-${pid}`);if(!d)return;
-    d.textContent=Math.max(1,parseInt(d.textContent)+ch);
+function updateQuantity(pid, ch) {
+    const d = document.getElementById(`qty-${pid}`); if (!d) return;
+    d.textContent = Math.max(1, parseInt(d.textContent) + ch);
 }
-function addToCart(pid){
-    const p=products.find(x=>x.id===pid);if(!p)return;
-    const q=parseInt(document.getElementById(`qty-${pid}`).textContent);
-    const ex=AppState.cart.find(i=>i.id===pid);
-    if(ex)ex.quantity+=q;else AppState.cart.push({id:pid,name:p.name,price:p.price,quantity:q});
-    document.getElementById(`qty-${pid}`).textContent='1';
-    updateCartBadge();showNotification('تمت الإضافة إلى السلة','success');updateFlavorButtons();
-    const titleEl=document.getElementById(`ptitle-${pid}`);
-    if(titleEl){
-        const oldTag=titleEl.querySelector('.in-cart-tag');if(oldTag)oldTag.remove();
-        const inQ=AppState.cart.find(i=>i.id===pid)?.quantity||0;
-        if(inQ>0){const t=document.createElement('span');t.className='in-cart-tag';t.textContent=`في السلة ×${inQ}`;titleEl.appendChild(t)}
+
+function addToCart(pid) {
+    const p = products.find(x => x.id === pid); if (!p) return;
+    const q = parseInt(document.getElementById(`qty-${pid}`).textContent);
+    const ex = AppState.cart.find(i => i.id === pid);
+    if (ex) ex.quantity += q; else AppState.cart.push({ id: pid, name: p.name, price: p.price, quantity: q });
+    document.getElementById(`qty-${pid}`).textContent = '1';
+    updateCartBadge(); showNotification('تمت الإضافة إلى السلة', 'success'); updateFlavorButtons();
+    const titleEl = document.getElementById(`ptitle-${pid}`);
+    if (titleEl) {
+        const oldTag = titleEl.querySelector('.in-cart-tag'); if (oldTag) oldTag.remove();
+        const inQ = AppState.cart.find(i => i.id === pid)?.quantity || 0;
+        if (inQ > 0) { const t = document.createElement('span'); t.className = 'in-cart-tag'; t.textContent = `في السلة ×${inQ}`; titleEl.appendChild(t); }
     }
 }
-function addSimpleFlavor(pid){
-    const p=products.find(x=>x.id===pid);if(!p)return;
-    if(!AppState.cart.find(i=>i.id===pid)){showNotification('أضف المنتج إلى السلة أولاً','error');return}
-    AppState.cart.push({id:`simple-flavor-${pid}-${Date.now()}`,name:`نكهة إضافية - ${p.name}`,price:0.50,quantity:1,isFlavor:true,parentProductId:pid});
-    updateCartBadge();showNotification('تمت إضافة النكهة (+0.50 د.أ)','success');
+
+function addSimpleFlavor(pid) {
+    const p = products.find(x => x.id === pid); if (!p) return;
+    if (!AppState.cart.find(i => i.id === pid)) { showNotification('أضف المنتج إلى السلة أولاً', 'error'); return; }
+    AppState.cart.push({ id: `simple-flavor-${pid}-${Date.now()}`, name: `نكهة إضافية - ${p.name}`, price: 0.50, quantity: 1, isFlavor: true, parentProductId: pid });
+    updateCartBadge(); showNotification('تمت إضافة النكهة (+0.50 د.أ)', 'success');
 }
-function openFlavorModal(pid){
-    if(!AppState.cart.find(i=>i.id===pid)){showNotification('أضف المنتج إلى السلة أولاً','error');return}
-    const mc=AppState.cart.reduce((s,i)=>isMojitoProduct(i.id)?s+i.quantity:s,0);
-    const fc=AppState.cart.filter(i=>i.isFlavor&&i.parentProductId&&isMojitoProduct(i.parentProductId)).length;
-    if(fc>=mc){showNotification('لا يمكن إضافة نكهة إضافية','error');return}
-    AppState.selectedProductForFlavor=pid;document.getElementById('flavorModal').classList.add('active');
+
+function openFlavorModal(pid) {
+    if (!AppState.cart.find(i => i.id === pid)) { showNotification('أضف المنتج إلى السلة أولاً', 'error'); return; }
+    const mc = AppState.cart.reduce((s,i) => isMojitoProduct(i.id) ? s + i.quantity : s, 0);
+    const fc = AppState.cart.filter(i => i.isFlavor && i.parentProductId && isMojitoProduct(i.parentProductId)).length;
+    if (fc >= mc) { showNotification('لا يمكن إضافة نكهة إضافية', 'error'); return; }
+    AppState.selectedProductForFlavor = pid; document.getElementById('flavorModal').classList.add('active');
 }
-function closeFlavorModal(){document.getElementById('flavorModal').classList.remove('active');AppState.selectedProductForFlavor=null}
-function selectFlavor(n,price){
-    const pid=AppState.selectedProductForFlavor;if(!pid)return;
-    const p=products.find(x=>x.id===pid);if(!p)return;
-    AppState.cart.push({id:`mojito-flavor-${pid}-${Date.now()}`,name:`نكهة ${n} - ${p.name}`,price,quantity:1,isFlavor:true,parentProductId:pid});
-    updateCartBadge();showNotification(`تمت إضافة نكهة ${n} (+${price.toFixed(2)} د.أ)`,'success');closeFlavorModal();
+function closeFlavorModal() { document.getElementById('flavorModal').classList.remove('active'); AppState.selectedProductForFlavor = null; }
+function selectFlavor(n, price) {
+    const pid = AppState.selectedProductForFlavor; if (!pid) return;
+    const p = products.find(x => x.id === pid); if (!p) return;
+    AppState.cart.push({ id: `mojito-flavor-${pid}-${Date.now()}`, name: `نكهة ${n} - ${p.name}`, price, quantity: 1, isFlavor: true, parentProductId: pid });
+    updateCartBadge(); showNotification(`تمت إضافة نكهة ${n} (+${price.toFixed(2)} د.أ)`, 'success'); closeFlavorModal();
 }
-function updateFlavorButtons(){
-    document.querySelectorAll('.flavor-simple-btn').forEach(b=>{const ic=AppState.cart.some(i=>i.id===b.dataset.productId);b.classList.toggle('enabled',ic);b.disabled=!ic});
-    const mc=AppState.cart.reduce((s,i)=>isMojitoProduct(i.id)?s+i.quantity:s,0);
-    const fc=AppState.cart.filter(i=>i.isFlavor&&i.parentProductId&&isMojitoProduct(i.parentProductId)).length;
-    document.querySelectorAll('.flavor-mojito-btn').forEach(b=>{const ic=AppState.cart.some(i=>i.id===b.dataset.productId);const ca=ic&&fc<mc;b.classList.toggle('enabled',ca);b.disabled=!ca});
+
+function updateFlavorButtons() {
+    document.querySelectorAll('.flavor-simple-btn').forEach(b => {
+        const ic = AppState.cart.some(i => i.id === b.dataset.productId);
+        b.classList.toggle('enabled', ic); b.disabled = !ic;
+    });
+    const mc = AppState.cart.reduce((s,i) => isMojitoProduct(i.id) ? s + i.quantity : s, 0);
+    const fc = AppState.cart.filter(i => i.isFlavor && i.parentProductId && isMojitoProduct(i.parentProductId)).length;
+    document.querySelectorAll('.flavor-mojito-btn').forEach(b => {
+        const ic = AppState.cart.some(i => i.id === b.dataset.productId);
+        const ca = ic && fc < mc; b.classList.toggle('enabled', ca); b.disabled = !ca;
+    });
 }
-function updateCartBadge(){
-    document.getElementById('cartBadge').textContent=AppState.cart.reduce((s,i)=>s+i.quantity,0);
+
+function updateCartBadge() {
+    document.getElementById('cartBadge').textContent = AppState.cart.reduce((s,i) => s + i.quantity, 0);
     updateFlavorButtons();
 }
-function showCart(){
-    const ci=document.getElementById('cartItems');
-    if(AppState.cart.length===0){ci.innerHTML='<div style="text-align:center;padding:30px">السلة فارغة</div>';document.getElementById('cartTotal').textContent='المجموع: 0 د.أ'}
-    else{
-        let t=0;
-        ci.innerHTML=AppState.cart.map((item,idx)=>{
-            t+=item.price*item.quantity;
-            return`<div class="cart-item">
+
+function showCart() {
+    const ci = document.getElementById('cartItems');
+    if (AppState.cart.length === 0) {
+        ci.innerHTML = '<div style="text-align:center;padding:30px">السلة فارغة</div>';
+        document.getElementById('cartTotal').textContent = 'المجموع: 0 د.أ';
+    } else {
+        let t = 0;
+        ci.innerHTML = AppState.cart.map((item, idx) => {
+            t += item.price * item.quantity;
+            return `<div class="cart-item">
                 <div class="cart-item-info"><h4>${item.name}</h4><div class="cart-item-price">${Number(item.price).toFixed(2)} د.أ</div></div>
                 <div class="cart-item-controls">
                     <button class="cart-qty-btn" onclick="updateCartItem(${idx},-1)">-</button>
@@ -731,81 +789,98 @@ function showCart(){
                     <button class="cart-qty-btn" onclick="updateCartItem(${idx},1)">+</button>
                     <button class="cart-qty-btn" style="background:#cc3300;color:white" onclick="removeCartItem(${idx})"><i class="fas fa-trash"></i></button>
                 </div>
-            </div>`}).join('');
-        document.getElementById('cartTotal').textContent=`المجموع: ${t.toFixed(2)} د.أ`;
+            </div>`;
+        }).join('');
+        document.getElementById('cartTotal').textContent = `المجموع: ${t.toFixed(2)} د.أ`;
     }
     document.getElementById('cartModal').classList.add('active');
 }
-function updateCartItem(idx,ch){AppState.cart[idx].quantity+=ch;if(AppState.cart[idx].quantity<=0)AppState.cart.splice(idx,1);updateCartBadge();showCart()}
-function removeCartItem(idx){AppState.cart.splice(idx,1);updateCartBadge();showCart()}
-function closeCart(){document.getElementById('cartModal').classList.remove('active')}
-function showCheckout(){
-    if(AppState.cart.length===0){showNotification('السلة فارغة','error');return}
-    document.getElementById('checkoutTableNumber').textContent=AppState.selectedTable;
+
+function updateCartItem(idx, ch) { AppState.cart[idx].quantity += ch; if (AppState.cart[idx].quantity <= 0) AppState.cart.splice(idx, 1); updateCartBadge(); showCart(); }
+function removeCartItem(idx)      { AppState.cart.splice(idx, 1); updateCartBadge(); showCart(); }
+function closeCart()              { document.getElementById('cartModal').classList.remove('active'); }
+
+function showCheckout() {
+    if (AppState.cart.length === 0) { showNotification('السلة فارغة', 'error'); return; }
+    document.getElementById('checkoutTableNumber').textContent = AppState.selectedTable;
     document.getElementById('cartModal').classList.remove('active');
-    document.getElementById('notes').value='';
+    document.getElementById('notes').value = '';
     document.getElementById('checkoutModal').classList.add('active');
 }
-function closeCheckout(){document.getElementById('checkoutModal').classList.remove('active')}
+function closeCheckout() { document.getElementById('checkoutModal').classList.remove('active'); }
 
 // ======== SUBMIT ========
-async function submitOrder(event){
+async function submitOrder(event) {
     event.preventDefault();
-    const tableNumber=AppState.selectedTable;
-    if(!tableNumber){showNotification('لم يتم تحديد طاولة','error');return}
-    const total=AppState.cart.reduce((s,i)=>s+(i.price*i.quantity),0).toFixed(2);
-    const notes=document.getElementById('notes').value.trim();
-    const btn=event.target.querySelector('button[type="submit"]');
-    const orig=btn.textContent;btn.textContent='جاري الإرسال...';btn.disabled=true;
-    try{
-        const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),10000);
-        if(AppState.isEditMode){
-            const ex=AppState.tableOrders[tableNumber];
-            const oid=ex?.orderId||'';
-            const upd={tableNumber:parseInt(tableNumber),notes,items:AppState.cart,total,
-                itemsCount:AppState.cart.reduce((s,i)=>s+i.quantity,0),
-                lastModified:new Date().toISOString()};
-            const fd=new URLSearchParams();
-            fd.append('action','updateOrderItems');
-            fd.append('orderId',oid);
-            fd.append('data',JSON.stringify(upd));
-            await fetch(OLD_API_URL,{method:'POST',mode:'no-cors',
-                headers:{'Content-Type':'application/x-www-form-urlencoded'},
-                body:fd,signal:ctrl.signal});
-            clearTimeout(tid);
-            AppState.tableOrders[tableNumber]={
-                orderId:oid,
-                items:[...AppState.cart],
-                notes,total,
-                lastModified:new Date().toISOString()
+    const tableNumber = AppState.selectedTable;
+    if (!tableNumber) { showNotification('لم يتم تحديد طاولة', 'error'); return; }
+    const total = AppState.cart.reduce((s,i) => s + (i.price * i.quantity), 0).toFixed(2);
+    const notes = document.getElementById('notes').value.trim();
+    const btn = event.target.querySelector('button[type="submit"]');
+    const orig = btn.textContent; btn.textContent = 'جاري الإرسال...'; btn.disabled = true;
+
+    try {
+        const ctrl = new AbortController(); const tid = setTimeout(() => ctrl.abort(), 10000);
+        const cartSnapshot = [...AppState.cart];
+
+        if (AppState.isEditMode) {
+            // ========= تعديل طلب موجود =========
+            // نبحث عن الطلب الموجود لهذه الطاولة من السيرفر
+            let existingOrderId = '';
+            try {
+                const ordersRes = await fetch(`${OLD_API_URL}?action=getOrders&status=preparing&_=${Date.now()}`);
+                const ordersData = await ordersRes.json();
+                if (ordersData.success && ordersData.orders) {
+                    const found = ordersData.orders.find(o => String(o.tableNumber) === String(tableNumber) && o.status === 'preparing');
+                    if (found) existingOrderId = found.orderId;
+                }
+            } catch(e) {}
+
+            const upd = {
+                tableNumber: parseInt(tableNumber),
+                notes,
+                items: cartSnapshot,
+                total,
+                itemsCount: cartSnapshot.reduce((s,i) => s + i.quantity, 0),
+                lastModified: new Date().toISOString()
             };
-            saveTableOrders();
-            broadcastOrderModified(tableNumber,oid,[...AppState.cart],total,notes);
-            showNotification('✅ تم تحديث الطلب بنجاح!','success');
-        }else{
-            const cartSnapshot=[...AppState.cart];
-            const od={tableNumber:parseInt(tableNumber),notes,items:cartSnapshot,
-                total,source:'web',timestamp:new Date().toISOString(),status:'preparing'};
-            const fd=new URLSearchParams();
-            fd.append('action','saveOrder');
-            fd.append('data',JSON.stringify(od));
-            await fetch(OLD_API_URL,{method:'POST',mode:'no-cors',
-                headers:{'Content-Type':'application/x-www-form-urlencoded'},
-                body:fd,signal:ctrl.signal});
+            const fd = new URLSearchParams();
+            fd.append('action', 'updateOrderItems');
+            fd.append('orderId', existingOrderId);
+            fd.append('data', JSON.stringify(upd));
+            await fetch(OLD_API_URL, {
+                method: 'POST', mode: 'no-cors',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: fd, signal: ctrl.signal
+            });
             clearTimeout(tid);
-            AppState.tableOrders[tableNumber]={
-                orderId:null,
-                items:cartSnapshot,
-                notes,total,
-                createdAt:new Date().toISOString()
+
+            // إعلام cash.html بالتعديل عبر BroadcastChannel (تكميلي)
+            broadcastOrderModified(tableNumber, existingOrderId, cartSnapshot, total, notes);
+            showNotification('✅ تم تحديث الطلب بنجاح!', 'success');
+
+        } else {
+            // ========= طلب جديد =========
+            const od = {
+                tableNumber: parseInt(tableNumber), notes, items: cartSnapshot,
+                total, source: 'web', timestamp: new Date().toISOString(), status: 'preparing'
             };
-            saveTableOrders();
-            setTableStatus(tableNumber,'occupied');
-            
-            // ===== إصلاح جذري: إرسال الطلب الجديد عبر BroadcastChannel =====
-            // نقوم بتوليد معرف مؤقت للطلب ليظهر فوراً في الكاشير
+            const fd = new URLSearchParams();
+            fd.append('action', 'saveOrder');
+            fd.append('data', JSON.stringify(od));
+            await fetch(OLD_API_URL, {
+                method: 'POST', mode: 'no-cors',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: fd, signal: ctrl.signal
+            });
+            clearTimeout(tid);
+
+            // تحديث حالة الطاولة على Sheets
+            await pushTableStatus(tableNumber, 'occupied');
+
+            // إعلام cash.html بالطلب الجديد
             const tempOrderId = `TSN-${Date.now()}`;
-            if(window.BroadcastChannel){
+            if (window.BroadcastChannel) {
                 const bc = new BroadcastChannel('table_status_channel');
                 bc.postMessage({
                     type: 'NEW_ORDER',
@@ -813,8 +888,7 @@ async function submitOrder(event){
                         orderId: tempOrderId,
                         tableNumber: parseInt(tableNumber),
                         items: cartSnapshot,
-                        total: total,
-                        notes: notes,
+                        total, notes,
                         timestamp: new Date().toISOString(),
                         status: 'preparing',
                         source: 'web'
@@ -822,122 +896,103 @@ async function submitOrder(event){
                 });
                 bc.close();
             }
-            showNotification('✅ تم إرسال الطلب بنجاح!','success');
+            showNotification('✅ تم إرسال الطلب بنجاح!', 'success');
         }
-        AppState.cart=[];updateCartBadge();closeCheckout();event.target.reset();
-        setTimeout(()=>{AppState.selectedTable=null;AppState.isEditMode=false;showTableSelectionScreen()},1500);
-    }catch(e){showNotification('❌ حدث خطأ في الإرسال.','error')}
-    finally{btn.textContent=orig;btn.disabled=false}
+
+        AppState.cart = []; updateCartBadge(); closeCheckout(); event.target.reset();
+        setTimeout(async () => {
+            AppState.selectedTable = null; AppState.isEditMode = false;
+            await showTableSelectionScreen();
+        }, 1500);
+
+    } catch(e) {
+        showNotification('❌ حدث خطأ في الإرسال.', 'error');
+    } finally {
+        btn.textContent = orig; btn.disabled = false;
+    }
 }
 
-// ======== BROADCAST: إشعار cash.html بالتعديل ========
-function broadcastOrderModified(tableNumber,orderId,items,total,notes){
-    if(!window.BroadcastChannel)return;
-    const payload={
-        type:'ORDER_MODIFIED',
+// ======== BROADCAST: إعلام cash.html بالتعديل ========
+function broadcastOrderModified(tableNumber, orderId, items, total, notes) {
+    if (!window.BroadcastChannel) return;
+    const bc = new BroadcastChannel('table_status_channel');
+    bc.postMessage({
+        type: 'ORDER_MODIFIED',
         tableNumber: String(tableNumber),
-        orderId: orderId||null,
-        items: items,
-        total: total,
-        notes: notes,
+        orderId: orderId || null,
+        items, total, notes,
         modifiedAt: new Date().toISOString()
-    };
-    const bc=new BroadcastChannel('table_status_channel');
-    bc.postMessage(payload);
+    });
     bc.close();
 }
 
 // ======== IMAGE ========
-function openImageModal(src){document.getElementById('modalImage').src=src;document.getElementById('imageModal').classList.add('active');document.body.style.overflow='hidden'}
-function closeImageModal(e){if(e&&e.target!==document.getElementById('imageModal')&&e.target.className!=='close-image-modal')return;document.getElementById('imageModal').classList.remove('active');document.body.style.overflow=''}
+function openImageModal(src) { document.getElementById('modalImage').src = src; document.getElementById('imageModal').classList.add('active'); document.body.style.overflow = 'hidden'; }
+function closeImageModal(e) { if (e && e.target !== document.getElementById('imageModal') && e.target.className !== 'close-image-modal') return; document.getElementById('imageModal').classList.remove('active'); document.body.style.overflow = ''; }
 
 // ======== NOTIFICATION ========
-function showNotification(msg,type='info'){
-    const n=document.createElement('div');
-    n.style.cssText=`position:fixed;top:25px;left:50%;transform:translateX(-50%);background:${type==='success'?'#2D5A27':type==='error'?'#8B5A2B':type==='transfer'?'#1565C0':'#4A7B3D'};color:white;padding:18px 35px;border-radius:60px;box-shadow:0 10px 35px rgba(0,0,0,0.4);z-index:9999;font-weight:bold;border:3px solid #FFF;direction:rtl;text-align:center;min-width:250px;font-size:1.1em;backdrop-filter:blur(4px);font-family:'Cairo',sans-serif;`;
-    n.innerHTML=`<i class="fas ${type==='success'?'fa-check-circle':type==='error'?'fa-exclamation-circle':type==='transfer'?'fa-exchange-alt':'fa-info-circle'}"></i> ${msg}`;
-    document.body.appendChild(n);setTimeout(()=>n.remove(),3300);
+function showNotification(msg, type = 'info') {
+    const n = document.createElement('div');
+    n.style.cssText = `position:fixed;top:25px;left:50%;transform:translateX(-50%);background:${type==='success'?'#2D5A27':type==='error'?'#8B5A2B':type==='transfer'?'#1565C0':'#4A7B3D'};color:white;padding:18px 35px;border-radius:60px;box-shadow:0 10px 35px rgba(0,0,0,0.4);z-index:9999;font-weight:bold;border:3px solid #FFF;direction:rtl;text-align:center;min-width:250px;font-size:1.1em;backdrop-filter:blur(4px);font-family:'Cairo',sans-serif;`;
+    n.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle':type==='error'?'fa-exclamation-circle':type==='transfer'?'fa-exchange-alt':'fa-info-circle'}"></i> ${msg}`;
+    document.body.appendChild(n); setTimeout(() => n.remove(), 3300);
 }
 
-// ======== معالجة نقل الطاولة القادم من cash.html ========
+// ======== استقبال نقل الطاولة من cash.html ========
 function handleTableTransfer(fromTable, toTable) {
-    const from = String(fromTable);
-    const to   = String(toTable);
-
-    // تحديث حالة الطاولتين في localStorage وفي AppState
+    const from = String(fromTable), to = String(toTable);
+    // تحديث الذاكرة المحلية للجلسة
     AppState.tableStatuses[from] = 'free';
     AppState.tableStatuses[to]   = 'occupied';
-    localStorage.setItem(TABLE_STATUS_KEY, JSON.stringify(AppState.tableStatuses));
-
-    // تحديث الخلايا المرئية إذا كانت شاشة الطاولات ظاهرة
-    renderTableCell(from);
-    renderTableCell(to);
-
-    // إذا كان المستخدم الحالي على الطاولة المنقولة → تحديث العرض
+    renderTableCell(from); renderTableCell(to);
     if (AppState.selectedTable && String(AppState.selectedTable) === from) {
         AppState.selectedTable = to;
-        const disp = document.getElementById('selectedTableDisplay');
-        if (disp) disp.textContent = to;
-        const ckNum = document.getElementById('checkoutTableNumber');
-        if (ckNum) ckNum.textContent = to;
+        const disp = document.getElementById('selectedTableDisplay'); if (disp) disp.textContent = to;
+        const ckNum = document.getElementById('checkoutTableNumber'); if (ckNum) ckNum.textContent = to;
     }
-
-    // نقل بيانات الطلب المحلي من الطاولة القديمة للجديدة
-    if (AppState.tableOrders[from]) {
-        AppState.tableOrders[to] = { ...AppState.tableOrders[from] };
-        delete AppState.tableOrders[from];
-        saveTableOrders();
-    }
-
-    // إظهار إشعار بصري
     showTransferToast(from, to);
 }
 
 function showTransferToast(from, to) {
-    // إزالة توست سابق إن وُجد
-    const old = document.getElementById('transfer-toast-el');
-    if (old) old.remove();
-
+    const old = document.getElementById('transfer-toast-el'); if (old) old.remove();
     const toast = document.createElement('div');
-    toast.id = 'transfer-toast-el';
-    toast.className = 'transfer-toast';
+    toast.id = 'transfer-toast-el'; toast.className = 'transfer-toast';
     toast.innerHTML = `<i class="fas fa-exchange-alt"></i> تم نقل الزبائن من طاولة <strong>${from}</strong> إلى طاولة <strong>${to}</strong>`;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 4500);
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 4500);
 }
 
 // ======== BROADCAST RECEIVER ========
-if(window.BroadcastChannel){
-    const bc=new BroadcastChannel('table_status_channel');
-    bc.onmessage=(e)=>{
-        if(!e.data) return;
-
-        // تحديث حالات الطاولات العام
-        if(e.data.type==='TABLE_STATUS_UPDATE'){
-            AppState.tableStatuses=e.data.statuses;
-            if(document.getElementById('table-selection-screen').classList.contains('active'))
+if (window.BroadcastChannel) {
+    const bc = new BroadcastChannel('table_status_channel');
+    bc.onmessage = async (e) => {
+        if (!e.data) return;
+        // تحديث حالات الطاولات من cash.html (عبر Sheets) → نعيد الجلب
+        if (e.data.type === 'TABLE_STATUS_UPDATE') {
+            await fetchTableStatuses();
+            if (document.getElementById('table-selection-screen').classList.contains('active'))
                 renderTablesGrid();
         }
-
-        // إكمال الطلب
-        if(e.data.type==='ORDER_COMPLETED'){
-            const t=e.data.tableNumber;
-            if(t&&AppState.tableOrders[t]){delete AppState.tableOrders[t];saveTableOrders();}
+        if (e.data.type === 'ORDER_COMPLETED') {
+            // نعيد جلب الحالات من السيرفر بعد اكتمال طلب
+            await fetchTableStatuses();
+            if (document.getElementById('table-selection-screen').classList.contains('active'))
+                renderTablesGrid();
         }
-
-        // ======== نقل الطاولة القادم من cash.html ========
-        if(e.data.type==='TABLE_TRANSFER'){
+        if (e.data.type === 'TABLE_TRANSFER') {
             handleTableTransfer(e.data.fromTable, e.data.toTable);
         }
     };
 }
 
 // ======== INIT ========
-document.addEventListener('DOMContentLoaded',()=>{
-    createLeaves();loadTableStatuses();loadTableOrders();
-    setTimeout(()=>{document.getElementById('intro-screen').classList.add('hidden');setTimeout(()=>showTableSelectionScreen(),600)},4000);
+document.addEventListener('DOMContentLoaded', () => {
+    createLeaves();
+    setTimeout(() => {
+        document.getElementById('intro-screen').classList.add('hidden');
+        setTimeout(() => showTableSelectionScreen(), 600);
+    }, 4000);
 });
-document.getElementById('cartFab').addEventListener('click',showCart);
+document.getElementById('cartFab').addEventListener('click', showCart);
 </script>
 </body>
 </html>
