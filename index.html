@@ -801,6 +801,27 @@ async function submitOrder(event){
             };
             saveTableOrders();
             setTableStatus(tableNumber,'occupied');
+            
+            // ===== إصلاح جذري: إرسال الطلب الجديد عبر BroadcastChannel =====
+            // نقوم بتوليد معرف مؤقت للطلب ليظهر فوراً في الكاشير
+            const tempOrderId = `TSN-${Date.now()}`;
+            if(window.BroadcastChannel){
+                const bc = new BroadcastChannel('table_status_channel');
+                bc.postMessage({
+                    type: 'NEW_ORDER',
+                    order: {
+                        orderId: tempOrderId,
+                        tableNumber: parseInt(tableNumber),
+                        items: cartSnapshot,
+                        total: total,
+                        notes: notes,
+                        timestamp: new Date().toISOString(),
+                        status: 'preparing',
+                        source: 'web'
+                    }
+                });
+                bc.close();
+            }
             showNotification('✅ تم إرسال الطلب بنجاح!','success');
         }
         AppState.cart=[];updateCartBadge();closeCheckout();event.target.reset();
