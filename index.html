@@ -665,6 +665,10 @@
         .loading-spinner::after { content: ''; width: 50px; height: 50px; border: 5px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spinAnim 0.8s linear infinite; }
         @keyframes spinAnim { to { transform: rotate(360deg); } }
 
+        .cart-actions { display: flex; gap: 12px; margin-bottom: 16px; }
+        .clear-cart-btn { background: #cc3300; color: white; border: none; border-radius: 40px; padding: 10px 20px; font-weight: 700; cursor: pointer; transition: var(--transition-smooth); font-family: 'Cairo', sans-serif; font-size: 0.9em; display: flex; align-items: center; gap: 6px; }
+        .clear-cart-btn:hover { transform: scale(1.03); background: #aa2200; }
+
         @media (max-width: 480px) {
             .product-image { width: 70px; height: 70px; }
             .product-title { font-size: 1em; }
@@ -677,6 +681,8 @@
             .nav-tab { padding: 5px 10px; font-size: 0.8em; }
             .tables-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
             .table-num { font-size: 1.2em; }
+            .modal-content { padding: 20px; }
+            .cart-fab { width: 65px; height: 65px; font-size: 1.8em; bottom: 20px; left: 20px; }
         }
     </style>
 </head>
@@ -839,8 +845,8 @@
     </div>
 
     <!-- مودال الصورة -->
-    <div class="image-modal" id="imageModal" onclick="closeImageModal(event)">
-        <span class="close-image-modal" onclick="closeImageModal()">&times;</span>
+    <div class="image-modal" id="imageModal">
+        <span class="close-image-modal" id="closeImageModalBtn">&times;</span>
         <div class="image-modal-content"><img id="modalImage" src="" alt="صورة المنتج" loading="lazy"></div>
     </div>
 
@@ -866,9 +872,12 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="cartModalTitle">🛒 سلة المشتريات</h2>
-                <button class="close-btn" onclick="closeCart()">×</button>
+                <button class="close-btn" id="closeCartBtn">×</button>
             </div>
             <div class="edit-mode-banner" id="editModeBannerInCart">✏️ وضع التعديل — يمكنك إضافة أصناف جديدة أو تعديل الكميات أو حذف أصناف</div>
+            <div class="cart-actions">
+                <button class="clear-cart-btn" id="clearCartBtn"><i class="fas fa-trash-alt"></i> تفريغ السلة</button>
+            </div>
             <div id="cartItems"></div>
             <div class="cart-total" id="cartTotal">المجموع: 0 د.أ</div>
             <button class="checkout-btn" id="checkoutBtn">متابعة الطلب</button>
@@ -880,7 +889,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="checkoutModalTitle">📋 تفاصيل الطلب</h2>
-                <button class="close-btn" onclick="closeCheckout()">×</button>
+                <button class="close-btn" id="closeCheckoutBtn">×</button>
             </div>
             <div class="table-confirm-card" id="tableConfirmCard">
                 <div class="table-confirm-icon"><i class="fas fa-chair"></i></div>
@@ -1125,6 +1134,11 @@
 
         function closeOccupiedModal() { document.getElementById('occupiedModal').classList.remove('active'); }
 
+        // إغلاق المودال بالنقر خارج المحتوى
+        document.getElementById('occupiedModal').addEventListener('click', function(e) {
+            if (e.target === this) closeOccupiedModal();
+        });
+
         function updateMenuUIMode() {
             const bar = document.getElementById('selectedTableBar');
             const badge = document.getElementById('editModeBadge');
@@ -1253,6 +1267,9 @@
             if (n.includes('طبق') || n.includes('رئيسية')) return 'fa-drumstick-bite';
             if (n.includes('صينية')) return 'fa-utensils';
             if (n.includes('مقبلات') || n.includes('سلطة')) return 'fa-leaf';
+            if (n.includes('موهيتو')) return 'fa-cocktail';
+            if (n.includes('قهوة')) return 'fa-mug-hot';
+            if (n.includes('عصير')) return 'fa-glass-whiskey';
             return 'fa-utensils';
         }
 
@@ -1272,7 +1289,7 @@
         function hasSimpleFlavor(pid) {
             const p = products.find(x => x.id === pid);
             if (!p) return false;
-            return SIMPLE_FLAVOR_PRODUCTS.includes(p.name.trim());
+            return SIMPLE_FLAVOR_PRODUCTS.some(name => p.name.trim() === name.trim());
         }
 
         function renderProducts(catId) {
@@ -1363,9 +1380,9 @@
                 showNotification('أضف المنتج إلى السلة أولاً', 'error');
                 return;
             }
-            const totalMojito = AppState.cart.reduce((sum, i) => isMojitoProduct(i.id) ? sum + i.quantity : sum, 0);
+            const totalMojito = AppState.cart.reduce((sum, i) => isMojitoProduct(i.id) && !i.isFlavor ? sum + i.quantity : sum, 0);
             const totalFlavors = AppState.cart.filter(i => i.isFlavor && i.parentProductId && isMojitoProduct(i.parentProductId)).length;
-            if (totalFlavors >= totalMojito) {
+            if (totalFlavors >= totalMojito && totalMojito > 0) {
                 showNotification('لا يمكن إضافة نكهة إضافية', 'error');
                 return;
             }
@@ -1386,19 +1403,29 @@
 
         function closeFlavorModal() { document.getElementById('flavorModal').classList.remove('active'); AppState.selectedProductForFlavor = null; }
 
+        // إغلاق مودال النكهات بالنقر خارج المحتوى
+        document.getElementById('flavorModal').addEventListener('click', function(e) {
+            if (e.target === this) closeFlavorModal();
+        });
+
         function updateFlavorButtons() {
+            // تحديث أزرار النكهات البسيطة
             document.querySelectorAll('.flavor-simple-btn').forEach(btn => {
                 const pid = btn.getAttribute('data-product-id');
                 const inCart = AppState.cart.some(i => i.id === pid);
                 btn.classList.toggle('enabled', inCart);
                 btn.disabled = !inCart;
             });
-            const totalMojito = AppState.cart.reduce((sum, i) => isMojitoProduct(i.id) ? sum + i.quantity : sum, 0);
+
+            // حساب عدد الموهيتو في السلة (بدون النكهات)
+            const totalMojito = AppState.cart.reduce((sum, i) => isMojitoProduct(i.id) && !i.isFlavor ? sum + i.quantity : sum, 0);
             const totalFlavors = AppState.cart.filter(i => i.isFlavor && i.parentProductId && isMojitoProduct(i.parentProductId)).length;
+            const canAddFlavor = totalFlavors < totalMojito;
+
             document.querySelectorAll('.flavor-mojito-btn').forEach(btn => {
                 const pid = btn.getAttribute('data-product-id');
                 const inCart = AppState.cart.some(i => i.id === pid);
-                const canAdd = inCart && (totalFlavors < totalMojito);
+                const canAdd = inCart && canAddFlavor;
                 btn.classList.toggle('enabled', canAdd);
                 btn.disabled = !canAdd;
             });
@@ -1409,7 +1436,7 @@
             const cartDiv = document.getElementById('cartItems');
             if (!cartDiv) return;
             if (!AppState.cart.length) {
-                cartDiv.innerHTML = '<div style="text-align:center;padding:30px">السلة فارغة</div>';
+                cartDiv.innerHTML = '<div style="text-align:center;padding:30px;color:#666;">السلة فارغة</div>';
                 document.getElementById('cartTotal').innerHTML = 'المجموع: 0 د.أ';
             } else {
                 let total = 0;
@@ -1442,6 +1469,16 @@
             updateCartBadge();
             showCart();
         };
+
+        function clearCart() {
+            if (AppState.cart.length === 0) return;
+            if (confirm('هل أنت متأكد من تفريغ السلة بالكامل؟')) {
+                AppState.cart = [];
+                updateCartBadge();
+                showCart();
+                showNotification('تم تفريغ السلة', 'info');
+            }
+        }
 
         function closeCart() { document.getElementById('cartModal').classList.remove('active'); }
 
@@ -1532,10 +1569,15 @@
         };
 
         window.closeImageModal = function (e) {
-            if (e && e.target !== document.getElementById('imageModal') && e.target.className !== 'close-image-modal') return;
+            if (e && e.target !== document.getElementById('imageModal') && e.target.id !== 'closeImageModalBtn') return;
             document.getElementById('imageModal').classList.remove('active');
             document.body.style.overflow = '';
         };
+
+        // إغلاق مودال الصورة بالنقر خارج الصورة
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) closeImageModal();
+        });
 
         // ======================== إنشاء الأوراق المتساقطة ========================
         function createLeaves() {
@@ -1553,6 +1595,16 @@
                 leaf.style.opacity = Math.random() * 0.6 + 0.4;
                 container.appendChild(leaf);
             }
+        }
+
+        // ======================== إغلاق المودالات العامة ========================
+        function closeAllModals() {
+            document.getElementById('cartModal').classList.remove('active');
+            document.getElementById('checkoutModal').classList.remove('active');
+            document.getElementById('flavorModal').classList.remove('active');
+            document.getElementById('imageModal').classList.remove('active');
+            document.getElementById('occupiedModal').classList.remove('active');
+            document.body.style.overflow = '';
         }
 
         // ======================== التهيئة الأولى ========================
@@ -1597,6 +1649,29 @@
                     if (flavorName && !isNaN(price)) selectFlavor(flavorName, price);
                 });
             });
+
+            // ربط أزرار الإغلاق
+            document.getElementById('closeCartBtn').addEventListener('click', closeCart);
+            document.getElementById('closeCheckoutBtn').addEventListener('click', closeCheckout);
+            document.getElementById('closeImageModalBtn').addEventListener('click', closeImageModal);
+
+            // زر تفريغ السلة
+            document.getElementById('clearCartBtn').addEventListener('click', clearCart);
+
+            // إغلاق السلة بالنقر خارج المحتوى
+            document.getElementById('cartModal').addEventListener('click', function(e) {
+                if (e.target === this) closeCart();
+            });
+
+            // إغلاق checkout بالنقر خارج المحتوى
+            document.getElementById('checkoutModal').addEventListener('click', function(e) {
+                if (e.target === this) closeCheckout();
+            });
+
+            // منع إغلاق مودال النكهات عند النقر على المحتوى
+            document.querySelector('#flavorModal .flavor-modal-content').addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
         });
 
         window.goBackToTables = goBackToTables;
@@ -1612,6 +1687,8 @@
         window.closeCheckout = closeCheckout;
         window.openImageModal = openImageModal;
         window.closeImageModal = closeImageModal;
+        window.clearCart = clearCart;
+        window.closeAllModals = closeAllModals;
     </script>
 </body>
 </html>
