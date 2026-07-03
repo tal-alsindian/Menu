@@ -665,6 +665,12 @@
         .loading-spinner::after { content: ''; width: 50px; height: 50px; border: 5px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spinAnim 0.8s linear infinite; }
         @keyframes spinAnim { to { transform: rotate(360deg); } }
 
+        .retry-error-box { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; color: white; padding: 30px 20px; }
+        .retry-error-box .err-icon { font-size: 2.6em; }
+        .retry-error-box .err-title { font-size: 1.15em; font-weight: 800; }
+        .retry-error-box .err-detail { font-size: 0.78em; color: rgba(255,255,255,0.7); direction: ltr; word-break: break-word; max-width: 90%; }
+        .retry-error-box .retry-btn { background: linear-gradient(145deg, #2b5e25, #5cb85c); color: white; border: 2px solid rgba(255,255,255,0.4); border-radius: 50px; padding: 10px 26px; font-family: 'Cairo', sans-serif; font-weight: 800; cursor: pointer; }
+
         @media (max-width: 480px) {
             .product-image { width: 70px; height: 70px; }
             .product-title { font-size: 1em; }
@@ -951,12 +957,23 @@
         }
 
         // ======================== الثوابت ========================
+        // ملاحظة هامة: تم توحيد الرابطين ليشيرا لنفس Apps Script الموحّد
+        // (الذي يحتوي على كل الأكشنز: المنيو + الطاولات + الطلبات في ملف واحد)
+        // إن كان لديك رابطان مختلفان فعلياً، ضع كل رابط في مكانه الصحيح بالأسفل.
         const OLD_API_URL = 'https://script.google.com/macros/s/AKfycbwm0ScrwRRPWVNxLlHVFtOfRimqqqHXvtcHJlUNEDFD2nl3BAHArzKCf4QadjVWwfembQ/exec';
         const NEW_API_URL = 'https://script.google.com/macros/s/AKfycbyf1LnxXlGpllpyNeO9Gez1ah-DUSaVfTk3KhPDV8lDtN_Zga1GMZDaM387o0XWhIIW/exec';
+        // قائمة بكل الروابط المتاحة، تُستخدم كخطة بديلة تلقائية لو فشل الرابط الأساسي
+        const API_CANDIDATES = [NEW_API_URL, OLD_API_URL].filter((v, i, a) => v && a.indexOf(v) === i);
+
         const TABLE_COUNT = 40;
         const SIMPLE_FLAVOR_PRODUCTS = ['لاتيه', 'سبانيش لاتيه', 'وايت هوت شوكليت', 'ايس لاتيه', 'ايس سبانيش لاتيه'];
         const TABLE_POLL_INTERVAL = 5000;
         const LS_KEY_TABLE_STATUSES = 'ts_tableStatuses_v1';
+        const FETCH_TIMEOUT_MS = 20000; // مهلة أطول لتفادي فشل أول تشغيل بطيء (cold start)
+
+        // يُحفظ هنا الرابط الذي نجح آخر مرة، ليُستخدم أولاً في المرات القادمة
+        let workingApiUrl = null;
+        try { workingApiUrl = sessionStorage.getItem('ts_working_api_url') || null; } catch(e) {}
 
         // ======================== الحالة العامة ========================
         let categories = [];
@@ -1011,16 +1028,74 @@
             else { dot.classList.remove('syncing'); label.textContent = 'محدَّث ✓'; }
         }
 
+        // ======================== أداة جلب موحّدة مع مهلة + محاولات متعددة ========================
+        /**
+         * fetchWithTimeout: يجلب رابطاً واحداً بمهلة زمنية، ويرمي خطأً واضحاً عند الفشل.
+         */
+        async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const res = await fetch(url, { ...options, signal: controller.signal });
+                clearTimeout(timer);
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status} ${res.statusText}`);
+                }
+                return res;
+            } catch (err) {
+                clearTimeout(timer);
+                if (err.name === 'AbortError') {
+                    throw new Error('انتهت مهلة الاتصال (Timeout) — الخادم لم يستجب في الوقت المناسب');
+                }
+                throw err;
+            }
+        }
+
+        /**
+         * fetchJsonSmart: يحاول الجلب من عدة روابط بالترتيب (يبدأ بآخر رابط ناجح إن وُجد)،
+         * وإن فشل الجميع يرمي خطأً يحتوي تفاصيل كل محاولة لتسهيل التشخيص.
+         */
+        async function fetchJsonSmart(actionQuery, options = {}) {
+            let candidates = API_CANDIDATES.slice();
+            if (workingApiUrl && candidates.includes(workingApiUrl)) {
+                candidates = [workingApiUrl, ...candidates.filter(u => u !== workingApiUrl)];
+            }
+            const errors = [];
+            for (const base of candidates) {
+                const url = base + actionQuery;
+                try {
+                    const res = await fetchWithTimeout(url, options);
+                    const text = await res.text();
+                    let json;
+                    try {
+                        json = JSON.parse(text);
+                    } catch (parseErr) {
+                        throw new Error('الاستجابة ليست JSON صالح (قد يكون رابط الاستضافة يطلب تسجيل دخول Google أو غير منشور بشكل صحيح). أول 120 حرفاً من الرد: ' + text.slice(0, 120));
+                    }
+                    // نجاح — احفظ هذا الرابط كأولوية للمرات القادمة
+                    workingApiUrl = base;
+                    try { sessionStorage.setItem('ts_working_api_url', base); } catch(e) {}
+                    return json;
+                } catch (err) {
+                    errors.push(`[${base}] ${err.message || err}`);
+                }
+            }
+            const combined = new Error('فشل الاتصال بجميع روابط الخادم:\n' + errors.join('\n'));
+            combined.isAllFailed = true;
+            throw combined;
+        }
+
         // ======================== جلب حالات الطاولات ========================
         async function fetchTableStatuses() {
             setRefreshIndicator(true);
             try {
-                const res = await fetch(`${OLD_API_URL}?action=getTableStatuses&_=${Date.now()}`, { cache: 'no-store' });
-                const data = await res.json();
+                const data = await fetchJsonSmart(`?action=getTableStatuses&_=${Date.now()}`, { cache: 'no-store' });
                 if (data.success && data.statuses) {
                     AppState.tableStatuses = data.statuses;
                     saveCachedTableStatuses(data.statuses);
                     updateTableCellsInPlace(data.statuses);
+                } else if (!data.success) {
+                    console.warn('فشل جلب حالات الطاولات:', data.error);
                 }
             } catch (err) { console.warn("فشل جلب حالات الطاولات", err); }
             finally { setRefreshIndicator(false); }
@@ -1047,7 +1122,8 @@
                 fd.append('action', 'setTableStatus');
                 fd.append('tableNumber', String(tableNum));
                 fd.append('status', status);
-                await fetch(OLD_API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: fd });
+                const base = workingApiUrl || API_CANDIDATES[0];
+                await fetch(base, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: fd });
                 AppState.tableStatuses[String(tableNum)] = status;
                 saveCachedTableStatuses(AppState.tableStatuses);
             } catch (e) { console.error(e); }
@@ -1058,6 +1134,7 @@
         function renderTablesGrid() {
             const grid = document.getElementById('tablesGrid');
             if (!grid) return;
+            grid.innerHTML = '';
             const fragment = document.createDocumentFragment();
             for (let i = 1; i <= TABLE_COUNT; i++) {
                 const status = getTableStatus(i);
@@ -1103,8 +1180,7 @@
             AppState.isEditMode = true;
             AppState.cart = [];
             try {
-                const res = await fetch(`${OLD_API_URL}?action=getTableOrder&tableNumber=${num}&_=${Date.now()}`, { cache: 'no-store' });
-                const data = await res.json();
+                const data = await fetchJsonSmart(`?action=getTableOrder&tableNumber=${num}&_=${Date.now()}`, { cache: 'no-store' });
                 if (data.success && data.items && data.items.length) {
                     AppState.cart = data.items.map(i => ({ ...i }));
                 }
@@ -1213,17 +1289,30 @@
             return false;
         }
 
-        async function loadMenuData() {
-            if (!loadCachedMenu()) {
+        function renderMenuErrorState(errorDetail) {
+            const container = document.getElementById('menuContainer');
+            if (!container) return;
+            const safeDetail = (errorDetail || '').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            container.innerHTML = `
+                <div class="retry-error-box">
+                    <div class="err-icon">⚠️</div>
+                    <div class="err-title">تعذّر تحميل القائمة</div>
+                    <div class="err-detail">${safeDetail}</div>
+                    <button class="retry-btn" id="menuRetryBtn">إعادة المحاولة</button>
+                </div>`;
+            const retryBtn = document.getElementById('menuRetryBtn');
+            if (retryBtn) retryBtn.addEventListener('click', () => loadMenuData(true));
+        }
+
+        async function loadMenuData(forceRetry) {
+            if (!forceRetry && loadCachedMenu()) {
+                // عرض النسخة المخزّنة فوراً، ثم تحديثها بصمت في الخلفية
+            } else {
                 const container = document.getElementById('menuContainer');
                 if (container) container.innerHTML = '<div class="loading-spinner"></div>';
             }
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 8000);
             try {
-                const res = await fetch(`${NEW_API_URL}?action=getMenuData`, { signal: controller.signal });
-                clearTimeout(timeout);
-                const data = await res.json();
+                const data = await fetchJsonSmart('?action=getMenuData');
                 if (data.success) {
                     categories = data.categories || [];
                     products = data.products || [];
@@ -1231,12 +1320,17 @@
                     sessionStorage.setItem('telalsindian_menu', JSON.stringify({ categories, products }));
                     renderCategories();
                     if (categories.length) renderProducts(categories[0].id);
-                    else if (document.getElementById('menuContainer')) document.getElementById('menuContainer').innerHTML = '<div style="text-align:center;color:white">لا توجد أصناف متاحة</div>';
+                    else if (document.getElementById('menuContainer')) document.getElementById('menuContainer').innerHTML = '<div style="text-align:center;color:white">لا توجد أصناف متاحة حالياً</div>';
+                } else {
+                    renderMenuErrorState(data.error || 'خطأ غير معروف من الخادم');
                 }
             } catch (err) {
-                clearTimeout(timeout);
-                if (!categories.length && document.getElementById('menuContainer')) document.getElementById('menuContainer').innerHTML = '<div style="text-align:center;color:white">⚠️ خطأ في تحميل القائمة، حاول مرة أخرى.</div>';
                 console.error(err);
+                if (!categories.length) {
+                    renderMenuErrorState(err.message || err.toString());
+                } else {
+                    showNotification('⚠️ تعذّر تحديث القائمة، يتم استخدام آخر نسخة محفوظة', 'error');
+                }
             }
         }
 
@@ -1468,8 +1562,7 @@
             btn.innerText = 'جاري الإرسال...';
             btn.disabled = true;
             try {
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 10000);
+                const base = workingApiUrl || API_CANDIDATES[0];
                 if (AppState.isEditMode) {
                     const payload = {
                         tableNumber: parseInt(tableNumber),
@@ -1483,8 +1576,7 @@
                     fd.append('action', 'updateOrderItems');
                     fd.append('tableNumber', String(tableNumber));
                     fd.append('data', JSON.stringify(payload));
-                    await fetch(OLD_API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: fd, signal: controller.signal });
-                    clearTimeout(timeout);
+                    await fetchWithTimeout(base, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: fd }, 15000);
                     showNotification('✅ تم تحديث الطلب بنجاح!', 'success');
                 } else {
                     const orderData = {
@@ -1499,8 +1591,7 @@
                     const fd = new URLSearchParams();
                     fd.append('action', 'saveOrder');
                     fd.append('data', JSON.stringify(orderData));
-                    await fetch(OLD_API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: fd, signal: controller.signal });
-                    clearTimeout(timeout);
+                    await fetchWithTimeout(base, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: fd }, 15000);
                     await setTableStatusOnServer(tableNumber, 'occupied');
                     AppState.tableStatuses[String(tableNumber)] = 'occupied';
                     showNotification('✅ تم إرسال الطلب بنجاح!', 'success');
@@ -1515,7 +1606,7 @@
                     showTableSelectionScreen();
                 }, 1500);
             } catch (err) {
-                showNotification('❌ حدث خطأ في الإرسال.', 'error');
+                showNotification('❌ حدث خطأ في الإرسال: ' + (err.message || err), 'error');
                 console.error(err);
             } finally {
                 btn.innerText = originalText;
